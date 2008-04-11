@@ -1,5 +1,5 @@
 import rb
-import gtk
+import gtk, gtk.glade
 
 from DesktopControl import DesktopControl
 from CoverManager import CoverManager

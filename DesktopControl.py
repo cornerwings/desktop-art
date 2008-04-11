@@ -1,5 +1,6 @@
 from __future__ import division
 
+import sys
 import gobject
 import gtk, cairo, pango
 import rsvg
@@ -8,9 +9,13 @@ from roundedrec import roundedrec
 ROUNDNESS = 0.3
 REFLECTION_HIGHT = 0.4
 REFLECTION_INTENSITY = 0.4
-HOVER_SIZE = 0.6
+HOVER_SIZE = 0.7
 HOVER_BORDER = 0.06
 UNKNOWN_COVER = -1
+
+def get_icon_path(theme, name, size):
+        icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
+        return (icon and icon.get_filename())
 
 class DesktopControl(gtk.DrawingArea):
     def __init__(self, icons):
@@ -23,7 +28,7 @@ class DesktopControl(gtk.DrawingArea):
 
         # Find and set up icon
         icon_theme = gtk.icon_theme_get_default()
-        icon_theme.connect('changed', self.icon_theme_changed, [self.cover_image])
+        icon_theme.connect('changed', self.icon_theme_changed, [self.cover_image, self.desktop_buttons])
 
         self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK)
         self.mouse_over = False
@@ -95,7 +100,7 @@ class DesktopControl(gtk.DrawingArea):
         # Will, (and should) only work if parent is gtk.Window
         pixmask = gtk.gdk.Pixmap(None, int(cover_area_size), int(cover_area_size), 1)
         ccmask = pixmask.cairo_create()
-        roundedrec(ccmask, 0, 0, cover_area_size, cover_area_size, cover_area_size * ROUNDNESS)
+        roundedrec(ccmask, 0, 0, cover_area_size, cover_area_size, ROUNDNESS)
         ccmask.fill()
         self.get_parent().input_shape_combine_mask(pixmask, 0, 0)
 
@@ -132,8 +137,31 @@ class SongInfo():
             cc.restore()
 
 class DesktopButtons():
+    icon_keys = ['previous', 'play', 'next']
+
     def __init__(self, icons):
         self.icons = icons
+        self.idata = {}
+        self.icon_theme_changed(gtk.icon_theme_get_default())
+
+    def icon_theme_changed(self, icon_theme):
+        for k in self.icon_keys:
+            self.idata[(k, 'path')] = get_icon_path(icon_theme, self.icons[k], self.icons['size'])
+            try:
+                self.idata[(k, 'image')] = rsvg.Handle(file=self.idata[(k, 'path')])
+                self.idata[(k, 'w')]     = self.idata[(k, 'image')].props.width
+                self.idata[(k, 'h')]     = self.idata[(k, 'image')].props.height
+                self.idata[(k, 'draw')]  = self.draw_svg_icon
+            except:
+                try:
+                    self.idata[(k, 'image')] = gtk.gdk.pixbuf_new_from_file(self.idata[(k, 'path')])
+                    self.idata[(k, 'w')]     = self.idata[(k, 'image')].get_width()
+                    self.idata[(k, 'h')]     = self.idata[(k, 'image')].get_height()
+                    self.idata[(k, 'draw')]  = self.draw_pixbuf_icon
+                except:
+                    sys.exit('ERROR: No media icons found.')
+            self.idata[(k, 'dim')]   = max(self.idata[(k, 'w')], self.idata[(k, 'h')])
+            self.idata[(k, 'scale')] = 1 / self.idata[(k, 'dim')]
 
     def draw(self, cc):
         cc.save()
@@ -142,16 +170,18 @@ class DesktopButtons():
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         cc.set_source_rgba(0, 0, 0, 0.2)
-        cc.translate(0.08, 0.74)
-        path = '/usr/share/icons/gnome/scalable/actions/'
-        for b in ['gtk-media-previous-ltr.svg',
-                  'gtk-media-play-ltr.svg',
-                  'gtk-media-next-ltr.svg']:
-            self.draw_icon(cc, '%s/%s' % (path, b), 0.24, 0.20, ROUNDNESS)
-            cc.translate(0.3, 0)
+        y = HOVER_SIZE + 1.8 * HOVER_BORDER
+        h = 1 - y - HOVER_BORDER
+        n = len(self.icon_keys)
+        w = (1 - (2 + n - 1) * HOVER_BORDER) / n
+        cc.translate(HOVER_BORDER, y)
+        for k in self.icon_keys:
+            self.draw_icon(cc, k, w, h)
+            cc.fill()
+            cc.translate(HOVER_BORDER + w, 0)
         cc.restore()
 
-    def draw_icon(self, cc, svg, w, h, r):
+    def draw_icon(self, cc, key, w, h):
         cc.save()
         cc.set_operator(cairo.OPERATOR_OVER)
 
@@ -162,24 +192,27 @@ class DesktopButtons():
         cc.fill()
         cc.restore()
 
-        cc.translate((w-h)/2, 0)
-        cc.scale(h, h)
+        x = max(0, (w-h)/2)
+        y = max(0, (h-w)/2)
+        cc.translate(x, y)
+        d = min(h, w)
+        cc.scale(d, d)
+        self.idata[(key, 'draw')](cc, key)
+        cc.restore()
 
+    def draw_svg_icon(self, cc, key):
         cc.push_group()
-        image = rsvg.Handle(file=svg)
-        iw = image.props.width
-        ih = image.props.height
-
-        dim = max(iw, ih)
-        scale = 1 / dim
-        
-        cc.scale(scale, scale)
-        image.render_cairo(cc)
+        cc.scale(self.idata[(key, 'scale')], self.idata[(key, 'scale')])
+        self.idata[(key, 'image')].render_cairo(cc)
         cc.set_source(cc.pop_group())
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
-        cc.restore()
-
+            
+    def draw_pixbuf_icon(self, cc, key):
+        cc.scale(self.idata[(key, 'scale')], self.idata[(key, 'scale')])
+        cc.set_source_pixbuf(self.idata[(key, 'image')], 0, 0)
+        roundedrec(cc, 0, 0, self.idata[(key, 'w')], self.idata[(key, 'h')], ROUNDNESS)
+        cc.fill()
 
 class CoverImage():
     def __init__(self, icons):
@@ -187,10 +220,8 @@ class CoverImage():
         self.icon_theme_changed(gtk.icon_theme_get_default())
 
     def icon_theme_changed(self, icon_theme):
-        not_playing_icon = icon_theme.lookup_icon(self.icons['not_playing'], self.icons['size'], gtk.ICON_LOOKUP_FORCE_SVG)
-        unknown_cover_icon = icon_theme.lookup_icon(self.icons['unknown_cover'], self.icons['size'], gtk.ICON_LOOKUP_FORCE_SVG)
-        not_playing_image = not_playing_icon and not_playing_icon.get_filename()
-        unknown_cover_image = unknown_cover_icon and unknown_cover_icon.get_filename()
+        not_playing_image = get_icon_path(icon_theme, self.icons['not_playing'], self.icons['size'])
+        unknown_cover_image = get_icon_path(icon_theme, self.icons['unknown_cover'], self.icons['size'])
 
         # Check if shown image needs to be updated
         image = False
@@ -225,7 +256,6 @@ class CoverImage():
                 except:
                     pass
 
-            self.r = min(self.w, self.h) * ROUNDNESS
             dim = max(self.w, self.h)
             self.x = dim - self.w
             self.y = dim - self.h
@@ -247,7 +277,7 @@ class CoverImage():
         cc.paint()
         self.image.render_cairo(cc)
         cc.set_source(cc.pop_group())
-        roundedrec(cc, self.x, self.y, self.w, self.h, self.r)
+        roundedrec(cc, self.x, self.y, self.w, self.h, ROUNDNESS)
         cc.fill()
         cc.restore()
 
@@ -255,7 +285,7 @@ class CoverImage():
         cc.save()
         cc.set_operator(cairo.OPERATOR_OVER)
         cc.scale(self.scale, self.scale)
-        roundedrec(cc, self.x, self.y, self.w, self.h, self.r)
+        roundedrec(cc, self.x, self.y, self.w, self.h, )
         cc.set_source_rgba(0,0,0,0.2)
         cc.fill_preserve()
         cc.set_source_pixbuf(self.image, self.x, self.y)
