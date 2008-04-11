@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.2 on Thu Apr 10 00:37:01 2008 -->
+<!--Generated with glade3 3.4.2 on Fri Apr 11 10:01:34 2008 -->
 <glade-interface>
   <widget class="GtkWindow" id="window">
     <property name="default_width">600</property>
@@ -11,7 +11,6 @@
     <property name="focus_on_map">False</property>
     <property name="decorated">False</property>
     <property name="deletable">False</property>
-    <property name="gravity">GDK_GRAVITY_SOUTH_EAST</property>
     <child>
       <placeholder/>
     </child>

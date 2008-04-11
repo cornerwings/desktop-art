@@ -1,5 +1,6 @@
 from __future__ import division
 
+import gobject
 import gtk, cairo, pango
 import rsvg
 from roundedrec import roundedrec
@@ -19,12 +20,22 @@ class DesktopControl(gtk.DrawingArea):
 
         self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK)
         self.mouse_over = False
+        self.hover_time_out = None
         self.connect('enter-notify-event', self.enter_leave)
         self.connect('leave-notify-event', self.enter_leave)
 
     def enter_leave(self, w, e):
-        self.mouse_over = (e.type == gtk.gdk.ENTER_NOTIFY)
-        self.queue_draw()
+        if self.hover_time_out:
+            gobject.source_remove(self.hover_time_out)
+            self.hover_time_out = None
+        hover = e.type == gtk.gdk.ENTER_NOTIFY
+        self.hover_time_out = gobject.timeout_add(500, self.set_hover, hover)
+
+    def set_hover(self, hover):
+        tmp = self.mouse_over
+        self.mouse_over = hover
+        if tmp != hover:
+            self.queue_draw()
 
     def expose(self, widget, event):
         cc = self.window.cairo_create()
@@ -123,10 +134,44 @@ class DesktopButtons():
         roundedrec(cc, 0, 0, 1, 1, RADIUS)
         cc.fill()
         cc.set_source_rgba(0, 0, 0, 0.2)
-        for b in range(3):
-            roundedrec(cc, 0.08 + 0.30 * b, 0.74, 0.24, 0.20, RADIUS)
-            cc.fill()
+        cc.translate(0.08, 0.74)
+        path = '/usr/share/icons/gnome/scalable/actions/'
+        for b in ['gtk-media-previous-ltr.svg',
+                  'gtk-media-play-ltr.svg',
+                  'gtk-media-next-ltr.svg']:
+            self.draw_icon(cc, '%s/%s' % (path, b), 0.24, 0.20, RADIUS)
+            cc.translate(0.3, 0)
         cc.restore()
+
+    def draw_icon(self, cc, svg, w, h, r):
+        cc.save()
+        cc.set_operator(cairo.OPERATOR_OVER)
+
+        cc.save()
+        cc.scale(w, h)
+        cc.set_source_rgba(0,0,0,0.2)
+        roundedrec(cc, 0, 0, 1, 1, RADIUS)
+        cc.fill()
+        cc.restore()
+
+        cc.translate((w-h)/2, 0)
+        cc.scale(h, h)
+
+        cc.push_group()
+        image = rsvg.Handle(file=svg)
+        iw = image.props.width
+        ih = image.props.height
+
+        dim = max(iw, ih)
+        scale = 1 / dim
+        
+        cc.scale(scale, scale)
+        image.render_cairo(cc)
+        cc.set_source(cc.pop_group())
+        roundedrec(cc, 0, 0, 1, 1, RADIUS)
+        cc.fill()
+        cc.restore()
+
 
 class CoverImage():
     def __init__(self):
