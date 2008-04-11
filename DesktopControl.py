@@ -5,18 +5,25 @@ import gtk, cairo, pango
 import rsvg
 from roundedrec import roundedrec
 
+ROUNDNESS = 0.3
+REFLECTION_HIGHT = 0.4
+REFLECTION_INTENSITY = 0.4
+HOVER_SIZE = 0.6
+HOVER_BORDER = 0.06
 UNKNOWN_COVER = -1
-RADIUS = 0.3
 
 class DesktopControl(gtk.DrawingArea):
-    def __init__(self):
+    def __init__(self, icons):
         gtk.DrawingArea.__init__(self)
         self.connect("expose_event", self.expose)
 
-        self.shadow_height = 0.4
-        self.cover_image = CoverImage()
+        self.cover_image = CoverImage(icons)
         self.song_info = SongInfo()
-        self.desktop_buttons = DesktopButtons()
+        self.desktop_buttons = DesktopButtons(icons)
+
+        # Find and set up icon
+        icon_theme = gtk.icon_theme_get_default()
+        icon_theme.connect('changed', self.icon_theme_changed, [self.cover_image])
 
         self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK)
         self.mouse_over = False
@@ -24,12 +31,16 @@ class DesktopControl(gtk.DrawingArea):
         self.connect('enter-notify-event', self.enter_leave)
         self.connect('leave-notify-event', self.enter_leave)
 
+    def icon_theme_changed(self, icon_theme, affected):
+        for a in affected:
+            a.icon_theme_changed(icon_theme)
+
     def enter_leave(self, w, e):
         if self.hover_time_out:
             gobject.source_remove(self.hover_time_out)
             self.hover_time_out = None
         hover = e.type == gtk.gdk.ENTER_NOTIFY
-        self.hover_time_out = gobject.timeout_add(500, self.set_hover, hover)
+        self.hover_time_out = gobject.timeout_add(350, self.set_hover, hover)
 
     def set_hover(self, hover):
         tmp = self.mouse_over
@@ -43,9 +54,6 @@ class DesktopControl(gtk.DrawingArea):
         cc.clip()
         self.draw(cc)
     
-    def set_default_cover_images(self, not_playing_image=None, unknown_cover_image=None):
-        self.cover_image.set_default_images(not_playing_image, unknown_cover_image)
-
     def draw(self, cc):
         # Clear cairo context
         cc.set_source_rgba(0, 0, 0, 0)
@@ -54,7 +62,7 @@ class DesktopControl(gtk.DrawingArea):
 
         # Scale the context so that the cover image area is 1 x 1
         rect = self.get_allocation()
-        cover_area_size = min(rect.width, rect.height / (1 + self.shadow_height))
+        cover_area_size = min(rect.width, rect.height / (1 + REFLECTION_HIGHT))
         cc.scale(cover_area_size, cover_area_size)
 
         cc.push_group()
@@ -62,8 +70,8 @@ class DesktopControl(gtk.DrawingArea):
         if self.mouse_over:
             self.desktop_buttons.draw(cc)
             cc.save()
-            cc.translate(0.19, 0.06)
-            cc.scale(0.62, 0.62)
+            cc.translate((1 - HOVER_SIZE) / 2, HOVER_BORDER)
+            cc.scale(HOVER_SIZE, HOVER_SIZE)
         self.cover_image.draw(cc)
         if self.mouse_over:
             cc.restore()
@@ -78,16 +86,16 @@ class DesktopControl(gtk.DrawingArea):
         cc.translate(0, 2.02)
         cc.scale(1, -1)
         cc.set_source(graphics)
-        shadow_mask = cairo.LinearGradient(0, 1 - self.shadow_height, 0, 1)
+        shadow_mask = cairo.LinearGradient(0, 1 - REFLECTION_HIGHT, 0, 1)
         shadow_mask.add_color_stop_rgba(0, 0, 0, 0, 0)
-        shadow_mask.add_color_stop_rgba(1, 0, 0, 0, 0.4)
+        shadow_mask.add_color_stop_rgba(1, 0, 0, 0, REFLECTION_INTENSITY)
         cc.mask(shadow_mask)
 
         # Input mask, only the cover image is clickable
         # Will, (and should) only work if parent is gtk.Window
         pixmask = gtk.gdk.Pixmap(None, int(cover_area_size), int(cover_area_size), 1)
         ccmask = pixmask.cairo_create()
-        roundedrec(ccmask, 0, 0, cover_area_size, cover_area_size, cover_area_size * RADIUS)
+        roundedrec(ccmask, 0, 0, cover_area_size, cover_area_size, cover_area_size * ROUNDNESS)
         ccmask.fill()
         self.get_parent().input_shape_combine_mask(pixmask, 0, 0)
 
@@ -124,14 +132,14 @@ class SongInfo():
             cc.restore()
 
 class DesktopButtons():
-    def __init__(self):
-        pass
+    def __init__(self, icons):
+        self.icons = icons
 
     def draw(self, cc):
         cc.save()
         cc.set_operator(cairo.OPERATOR_OVER)
         cc.set_source_rgba(0, 0, 0, 0.3)
-        roundedrec(cc, 0, 0, 1, 1, RADIUS)
+        roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         cc.set_source_rgba(0, 0, 0, 0.2)
         cc.translate(0.08, 0.74)
@@ -139,7 +147,7 @@ class DesktopButtons():
         for b in ['gtk-media-previous-ltr.svg',
                   'gtk-media-play-ltr.svg',
                   'gtk-media-next-ltr.svg']:
-            self.draw_icon(cc, '%s/%s' % (path, b), 0.24, 0.20, RADIUS)
+            self.draw_icon(cc, '%s/%s' % (path, b), 0.24, 0.20, ROUNDNESS)
             cc.translate(0.3, 0)
         cc.restore()
 
@@ -150,7 +158,7 @@ class DesktopButtons():
         cc.save()
         cc.scale(w, h)
         cc.set_source_rgba(0,0,0,0.2)
-        roundedrec(cc, 0, 0, 1, 1, RADIUS)
+        roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         cc.restore()
 
@@ -168,24 +176,30 @@ class DesktopButtons():
         cc.scale(scale, scale)
         image.render_cairo(cc)
         cc.set_source(cc.pop_group())
-        roundedrec(cc, 0, 0, 1, 1, RADIUS)
+        roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         cc.restore()
 
 
 class CoverImage():
-    def __init__(self):
-        self.set_default_images()
+    def __init__(self, icons):
+        self.icons = icons
+        self.icon_theme_changed(gtk.icon_theme_get_default())
 
-    def set_default_images(self, not_playing_image=None, unknown_cover_image=None):
+    def icon_theme_changed(self, icon_theme):
+        not_playing_icon = icon_theme.lookup_icon(self.icons['not_playing'], self.icons['size'], gtk.ICON_LOOKUP_FORCE_SVG)
+        unknown_cover_icon = icon_theme.lookup_icon(self.icons['unknown_cover'], self.icons['size'], gtk.ICON_LOOKUP_FORCE_SVG)
+        not_playing_image = not_playing_icon and not_playing_icon.get_filename()
+        unknown_cover_image = unknown_cover_icon and unknown_cover_icon.get_filename()
+
         # Check if shown image needs to be updated
         image = False
         if self.get_current_image() == self.get_not_playing_image():
             image = None
         elif self.get_current_image() == self.get_unknown_cover_image():
             image = UNKNOWN_COVER
-        self.not_playing_image = not_playing_image
-        self.unknown_cover_image = unknown_cover_image
+        self.set_not_playing_image(not_playing_image)
+        self.set_unknown_cover_image(unknown_cover_image)
         if image != False:
             self.set_image(image)
 
@@ -211,7 +225,7 @@ class CoverImage():
                 except:
                     pass
 
-            self.r = min(self.w, self.h) * RADIUS
+            self.r = min(self.w, self.h) * ROUNDNESS
             dim = max(self.w, self.h)
             self.x = dim - self.w
             self.y = dim - self.h
@@ -221,7 +235,7 @@ class CoverImage():
     def draw_background(self, cc):
         cc.save()
         cc.set_source_rgba(0,0,0,0.2)
-        roundedrec(cc, 0, 0, 1, 1, RADIUS)
+        roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         cc.restore()
 
