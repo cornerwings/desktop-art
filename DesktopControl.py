@@ -3,6 +3,7 @@ from __future__ import division
 import sys
 import gobject
 import gtk, cairo, pango
+import gconf
 import rsvg
 from roundedrec import roundedrec
 
@@ -10,7 +11,7 @@ ROUNDNESS = 0.3
 REFLECTION_HIGHT = 0.4
 REFLECTION_INTENSITY = 0.4
 HOVER_SIZE = 0.7
-HOVER_BORDER = 0.06
+BORDER = 0.06
 UNKNOWN_COVER = -1
 
 def get_icon_path(theme, name, size):
@@ -26,15 +27,23 @@ class DesktopControl(gtk.DrawingArea):
         self.song_info = SongInfo()
         self.desktop_buttons = DesktopButtons(icons)
 
-        # Find and set up icon
+        # Find and set up icon and font
         icon_theme = gtk.icon_theme_get_default()
         icon_theme.connect('changed', self.icon_theme_changed, [self.cover_image, self.desktop_buttons])
+	gc = gconf.client_get_default()
+	gc.add_dir('/apps/nautilus/preferences', gconf.CLIENT_PRELOAD_NONE)
+	gc.notify_add('/apps/nautilus/preferences/desktop_font', self.font_changed, [self.song_info])
 
         self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK)
         self.mouse_over = False
         self.hover_time_out = None
         self.connect('enter-notify-event', self.enter_leave)
         self.connect('leave-notify-event', self.enter_leave)
+
+    def font_changed(self, client, cnxn_id, entry, affected):
+        for a in affected:
+            a.font_changed(entry.get_value().get_string())
+	self.queue_draw()
 
     def icon_theme_changed(self, icon_theme, affected):
         for a in affected:
@@ -75,7 +84,7 @@ class DesktopControl(gtk.DrawingArea):
         if self.mouse_over:
             self.desktop_buttons.draw(cc)
             cc.save()
-            cc.translate((1 - HOVER_SIZE) / 2, HOVER_BORDER)
+            cc.translate((1 - HOVER_SIZE) / 2, BORDER)
             cc.scale(HOVER_SIZE, HOVER_SIZE)
         self.cover_image.draw(cc)
         if self.mouse_over:
@@ -110,15 +119,23 @@ class DesktopControl(gtk.DrawingArea):
         self.queue_draw()
 
 class SongInfo():
+    tags = {'title'  : ['<big><b>', '</b></big>'],
+	    'artist' : ['<i>', '</i>'],
+	    'album'  : ['', '']}
+    font = gconf.client_get_default().get_string('/apps/nautilus/preferences/desktop_font')
+	
     def __init__(self, song_info = None):
         self.set_text(song_info)
 
+    def font_changed(self, font):
+        self.font = font
+    
     def set_text(self, song_info):
         self.text = ''
         if song_info:
             for key in ('title', 'artist', 'album'):
                 if song_info[key]:
-                    self.text += '%s\n' % song_info[key]
+			self.text += '%s%s%s\n' % (self.tags[key][0], song_info[key], self.tags[key][1])
             self.text = self.text[:-1]
 
     def draw(self, cc):
@@ -126,12 +143,11 @@ class SongInfo():
             cc.save()
             x_scale = cc.get_matrix()[0]
             cc.identity_matrix()
-            font = "Bitstream Vera Sans Bold 11"
             layout = cc.create_layout()
-            layout.set_text(self.text)
-            layout.set_font_description(pango.FontDescription(font))
+            layout.set_markup(self.text)
+            layout.set_font_description(pango.FontDescription(self.font))
             txw, txh = layout.get_size()
-            cc.translate(x_scale * 1.07, x_scale * 0.97 - txh / pango.SCALE)
+            cc.translate(x_scale * (1 + BORDER), x_scale * (1 - BORDER / 2) - txh / pango.SCALE)
             cc.set_source_rgb(0, 0, 0)
             cc.show_layout(layout)
             cc.restore()
@@ -169,21 +185,19 @@ class DesktopButtons():
         cc.set_source_rgba(0, 0, 0, 0.3)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
-        cc.set_source_rgba(0, 0, 0, 0.2)
-        y = HOVER_SIZE + 1.8 * HOVER_BORDER
-        h = 1 - y - HOVER_BORDER
+        y = HOVER_SIZE + 1.8 * BORDER
+        h = 1 - y - BORDER
         n = len(self.icon_keys)
-        w = (1 - (2 + n - 1) * HOVER_BORDER) / n
-        cc.translate(HOVER_BORDER, y)
+        w = (1 - (2 + n - 1) * BORDER) / n
+        cc.translate(BORDER, y)
         for k in self.icon_keys:
             self.draw_icon(cc, k, w, h)
             cc.fill()
-            cc.translate(HOVER_BORDER + w, 0)
+            cc.translate(BORDER + w, 0)
         cc.restore()
 
     def draw_icon(self, cc, key, w, h):
         cc.save()
-        cc.set_operator(cairo.OPERATOR_OVER)
 
         cc.save()
         cc.scale(w, h)
