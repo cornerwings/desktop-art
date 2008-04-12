@@ -1,7 +1,8 @@
 from __future__ import division
 
 def roundedrec(cc, x, y, w, h, r):
-    r = r * min(w, h) / 2
+    r = min(1,r)
+    r = r * 0.7 * min(w, h)
     cc.move_to(x+r,y)
     cc.line_to(x+w-r,y)
     cc.curve_to(x+w,y,x+w,y,x+w,y+r)

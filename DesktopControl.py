@@ -6,7 +6,7 @@ import gtk, cairo, pango
 import rsvg
 from roundedrec import roundedrec
 
-ROUNDNESS = 0.3
+ROUNDNESS = 0.3 
 REFLECTION_HIGHT = 0.4
 REFLECTION_INTENSITY = 0.4
 HOVER_SIZE = 0.7
@@ -257,7 +257,7 @@ class CoverImage():
                     pass
 
             dim = max(self.w, self.h)
-            self.x = dim - self.w
+            self.x = (dim - self.w) / 2
             self.y = dim - self.h
             self.scale = 1 / dim
         self.current_image = image
@@ -285,7 +285,7 @@ class CoverImage():
         cc.save()
         cc.set_operator(cairo.OPERATOR_OVER)
         cc.scale(self.scale, self.scale)
-        roundedrec(cc, self.x, self.y, self.w, self.h, )
+        roundedrec(cc, self.x, self.y, self.w, self.h, ROUNDNESS)
         cc.set_source_rgba(0,0,0,0.2)
         cc.fill_preserve()
         cc.set_source_pixbuf(self.image, self.x, self.y)
