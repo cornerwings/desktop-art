@@ -22,13 +22,14 @@ def get_icon_path(theme, name, size):
     return (icon and icon.get_filename())
 
 class DesktopControl(gtk.DrawingArea):
-    def __init__(self, icons):
+    def __init__(self, icons, shell, player):
         gtk.DrawingArea.__init__(self)
         self.connect("expose_event", self.expose)
 
+        self.shell = shell
         self.cover_image = CoverImage(icons)
         self.song_info = SongInfo()
-        self.desktop_buttons = DesktopButtons(icons)
+        self.desktop_buttons = DesktopButtons(icons, player)
 
         # Find and set up icon and font
         icon_theme = gtk.icon_theme_get_default()
@@ -37,15 +38,20 @@ class DesktopControl(gtk.DrawingArea):
 	gc.add_dir('/apps/nautilus/preferences', gconf.CLIENT_PRELOAD_NONE)
 	gc.notify_add('/apps/nautilus/preferences/desktop_font', self.font_changed, [self.song_info])
 
-        self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK | gtk.gdk.POINTER_MOTION_MASK )
+        self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.BUTTON_PRESS_MASK)
         self.mouse_over = False
         self.hover_time_out = None
         self.connect('enter-notify-event', self.enter_leave)
         self.connect('leave-notify-event', self.enter_leave)
-	self.connect('motion-notify-event', self.motion_event, self.desktop_buttons)
+	self.connect('motion-notify-event', self.mouse_motion, self.desktop_buttons)
+	self.connect('button-press-event', self.button_press, self.desktop_buttons)
 
-    def motion_event(self, w, e, db):
-        if db.set_mouse_position(self, e.x, e.y):
+    def button_press(self, w, e, affected):
+        if not affected.button_press(e):
+            self.shell.props.visibility = not self.shell.props.visibility
+
+    def mouse_motion(self, w, e, affected):
+        if affected.set_mouse_position(self, e.x, e.y):
             self.queue_draw()
 
     def font_changed(self, client, cnxn_id, entry, affected):
@@ -126,6 +132,10 @@ class DesktopControl(gtk.DrawingArea):
         self.song_info.set_text(song_info)
         self.queue_draw()
 
+    def set_playing(self, playing):
+        self.desktop_buttons.set_playing(playing)
+        self.queue_draw()
+
 class SongInfo():
     tags = {'title'  : ['<big><b>', '</b></big>'],
 	    'artist' : ['<i>', '</i>'],
@@ -163,13 +173,31 @@ class SongInfo():
 class DesktopButtons():
     icon_keys = ['previous', 'play', 'next']
 
-    def __init__(self, icons):
+    def __init__(self, icons, player):
         self.icons = icons
+        self.player = player
         self.idata = {}
         for k in self.icon_keys:
             self.idata[(k, 'cairo_path')] = None
             self.idata[(k, 'hover')] = False
         self.icon_theme_changed(gtk.icon_theme_get_default())
+        self.playing = player.get_playing()
+
+    def set_playing(self, playing):
+        self.playing = playing
+
+    def button_press(self, event):
+        if event.button == 1:
+            if self.idata[('previous', 'hover')]:
+                self.player.do_previous()
+                return True
+            elif self.idata[('play', 'hover')]:
+                self.player.playpause()
+                return True
+            elif self.idata[('next', 'hover')]:
+                self.player.do_next()
+                return True
+        return False
 
     def set_mouse_position(self, w, x, y):
         redraw = False
@@ -208,7 +236,7 @@ class DesktopButtons():
         cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.3)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
-        y = HOVER_SIZE + 1.8 * BORDER
+        y = HOVER_SIZE + 2 * BORDER
         h = 1 - y - BORDER
         n = len(self.icon_keys)
         w = (1 - (2 + n - 1) * BORDER) / n
@@ -232,9 +260,12 @@ class DesktopButtons():
 	cc.restore()
 
 	if hover:
-	    cc.set_source_rgba(0, 0, 0, 0.5)
+	    cc.set_source_rgba(1, 1, 1, 0.3)
 	else:
-	    cc.set_source_rgba(0, 0, 0, 0.2)
+            if self.playing and key == 'play':
+                cc.set_source_rgba(0, 0, 0, 1)
+            else:
+                cc.set_source_rgba(0, 0, 0, 0.3)
 	cc.fill()
 
         cc.restore()

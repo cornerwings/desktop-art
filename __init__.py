@@ -18,7 +18,7 @@ class DesktopArt(rb.Plugin):
 	def activate (self, shell):
 		player = shell.get_player()
 
-		desktop_control = DesktopControl(icons)
+		desktop_control = DesktopControl(icons, shell, player)
 		cover_manager = CoverManager(player.props.db)
 
 		window =  gtk.glade.XML(self.find_file('desktop-art.glade')).get_widget('window')
@@ -47,6 +47,7 @@ class DesktopArt(rb.Plugin):
 		del self.player
 
 	def playing_changed(self, player, playing, desktop_control, cover_manager):
+		desktop_control.set_playing(playing)
 		if playing:
 			c, s = cover_manager.get_cover_and_song_info(player.get_playing_entry())
 			desktop_control.set_song(c, s)
