@@ -9,10 +9,13 @@ from roundedrec import roundedrec
 
 ROUNDNESS = 0.3 
 REFLECTION_HIGHT = 0.4
-REFLECTION_INTENSITY = 0.4
+REFLECTION_INTENSITY = 0.5
 HOVER_SIZE = 0.7
 BORDER = 0.06
 UNKNOWN_COVER = -1
+COLOR_R = 0
+COLOR_G = 0
+COLOR_B = 0
 
 def get_icon_path(theme, name, size):
     icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
@@ -153,7 +156,7 @@ class SongInfo():
             layout.set_font_description(pango.FontDescription(self.font))
             txw, txh = layout.get_size()
             cc.translate(x_scale * (1 + BORDER), x_scale * (1 - BORDER / 2) - txh / pango.SCALE)
-            cc.set_source_rgb(0, 0, 0)
+            cc.set_source_rgb(COLOR_R, COLOR_G, COLOR_B)
             cc.show_layout(layout)
             cc.restore()
 
@@ -202,7 +205,7 @@ class DesktopButtons():
     def draw(self, cc):
         cc.save()
         cc.set_operator(cairo.OPERATOR_OVER)
-        cc.set_source_rgba(0, 0, 0, 0.3)
+        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.3)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         y = HOVER_SIZE + 1.8 * BORDER
@@ -221,7 +224,6 @@ class DesktopButtons():
 
         cc.save()
         cc.scale(w, h)
-	cc.set_source_rgba(0,0,0,0.2)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
 
 	cc.save()
@@ -230,9 +232,9 @@ class DesktopButtons():
 	cc.restore()
 
 	if hover:
-	    cc.set_source_rgba(0,0,0,0.5)
+	    cc.set_source_rgba(0, 0, 0, 0.5)
 	else:
-	    cc.set_source_rgba(0,0,0,0.2)
+	    cc.set_source_rgba(0, 0, 0, 0.2)
 	cc.fill()
 
         cc.restore()
@@ -309,7 +311,7 @@ class CoverImage():
 
     def draw_background(self, cc):
         cc.save()
-        cc.set_source_rgba(0,0,0,0.2)
+        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.2)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         cc.restore()
@@ -318,7 +320,7 @@ class CoverImage():
         cc.save()
         cc.scale(self.scale, self.scale)
         cc.push_group()
-        cc.set_source_rgba(0,0,0,0.2)
+        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.2)
         cc.paint()
         self.image.render_cairo(cc)
         cc.set_source(cc.pop_group())
@@ -331,7 +333,7 @@ class CoverImage():
         cc.set_operator(cairo.OPERATOR_OVER)
         cc.scale(self.scale, self.scale)
         roundedrec(cc, self.x, self.y, self.w, self.h, ROUNDNESS)
-        cc.set_source_rgba(0,0,0,0.2)
+        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.2)
         cc.fill_preserve()
         cc.set_source_pixbuf(self.image, self.x, self.y)
         cc.fill()
