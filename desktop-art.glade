@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--Generated with glade3 3.4.2 on Sat Apr 12 02:27:59 2008 -->
+<!--Generated with glade3 3.4.2 on Sun Apr 13 01:08:50 2008 -->
 <glade-interface>
   <widget class="GtkWindow" id="window">
-    <property name="default_width">600</property>
+    <property name="default_width">750</property>
     <property name="default_height">200</property>
     <property name="skip_taskbar_hint">True</property>
     <property name="skip_pager_hint">True</property>

@@ -15,8 +15,8 @@ BORDER = 0.06
 UNKNOWN_COVER = -1
 
 def get_icon_path(theme, name, size):
-        icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
-        return (icon and icon.get_filename())
+    icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
+    return (icon and icon.get_filename())
 
 class DesktopControl(gtk.DrawingArea):
     def __init__(self, icons):
@@ -42,7 +42,8 @@ class DesktopControl(gtk.DrawingArea):
 	self.connect('motion-notify-event', self.motion_event, self.desktop_buttons)
 
     def motion_event(self, w, e, db):
-	    db.set_mouse_position(self, e.x, e.y)
+        if db.set_mouse_position(self, e.x, e.y):
+            self.queue_draw()
 
     def font_changed(self, client, cnxn_id, entry, affected):
         for a in affected:
@@ -162,16 +163,22 @@ class DesktopButtons():
     def __init__(self, icons):
         self.icons = icons
         self.idata = {}
+        for k in self.icon_keys:
+            self.idata[(k, 'cairo_path')] = None
+            self.idata[(k, 'hover')] = False
         self.icon_theme_changed(gtk.icon_theme_get_default())
 
     def set_mouse_position(self, w, x, y):
-        try:
-	    cc = w.window.cairo_create()
-            cc.append_path(self.idata[('play', 'cairo_path')])
-	    if cc.in_fill(x,y):
-                print 'hmm'
-	except:
-            pass
+        redraw = False
+        for k in self.icon_keys:
+	    if self.idata[(k, 'cairo_path')]:
+                cc = w.window.cairo_create()
+		cc.append_path(self.idata[(k, 'cairo_path')])
+		hover = cc.in_fill(x,y)
+		if hover != self.idata[(k, 'hover')]:
+                    self.idata[(k, 'hover')] = hover
+                    redraw = True
+	return redraw
 
     def icon_theme_changed(self, icon_theme):
         for k in self.icon_keys:
@@ -204,24 +211,30 @@ class DesktopButtons():
         w = (1 - (2 + n - 1) * BORDER) / n
         cc.translate(BORDER, y)
         for k in self.icon_keys:
-            self.draw_icon(cc, k, w, h)
+            self.draw_icon(cc, k, w, h, self.idata[(k, 'hover')])
             cc.fill()
             cc.translate(BORDER + w, 0)
         cc.restore()
 
-    def draw_icon(self, cc, key, w, h):
+    def draw_icon(self, cc, key, w, h, hover):
         cc.save()
 
         cc.save()
         cc.scale(w, h)
-        cc.set_source_rgba(0,0,0,0.2)
+	cc.set_source_rgba(0,0,0,0.2)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
 
 	cc.save()
 	cc.identity_matrix()
 	self.idata[(key, 'cairo_path')] = cc.copy_path()
 	cc.restore()
-        cc.fill()
+
+	if hover:
+	    cc.set_source_rgba(0,0,0,0.5)
+	else:
+	    cc.set_source_rgba(0,0,0,0.2)
+	cc.fill()
+
         cc.restore()
 
         x = max(0, (w-h)/2)
