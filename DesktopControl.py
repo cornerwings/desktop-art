@@ -34,11 +34,15 @@ class DesktopControl(gtk.DrawingArea):
 	gc.add_dir('/apps/nautilus/preferences', gconf.CLIENT_PRELOAD_NONE)
 	gc.notify_add('/apps/nautilus/preferences/desktop_font', self.font_changed, [self.song_info])
 
-        self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK)
+        self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK | gtk.gdk.POINTER_MOTION_MASK )
         self.mouse_over = False
         self.hover_time_out = None
         self.connect('enter-notify-event', self.enter_leave)
         self.connect('leave-notify-event', self.enter_leave)
+	self.connect('motion-notify-event', self.motion_event, self.desktop_buttons)
+
+    def motion_event(self, w, e, db):
+	    db.set_mouse_position(self, e.x, e.y)
 
     def font_changed(self, client, cnxn_id, entry, affected):
         for a in affected:
@@ -160,17 +164,26 @@ class DesktopButtons():
         self.idata = {}
         self.icon_theme_changed(gtk.icon_theme_get_default())
 
+    def set_mouse_position(self, w, x, y):
+        try:
+	    cc = w.window.cairo_create()
+            cc.append_path(self.idata[('play', 'cairo_path')])
+	    if cc.in_fill(x,y):
+                print 'hmm'
+	except:
+            pass
+
     def icon_theme_changed(self, icon_theme):
         for k in self.icon_keys:
-            self.idata[(k, 'path')] = get_icon_path(icon_theme, self.icons[k], self.icons['size'])
+            self.idata[(k, 'icon_path')] = get_icon_path(icon_theme, self.icons[k], self.icons['size'])
             try:
-                self.idata[(k, 'image')] = rsvg.Handle(file=self.idata[(k, 'path')])
+                self.idata[(k, 'image')] = rsvg.Handle(file=self.idata[(k, 'icon_path')])
                 self.idata[(k, 'w')]     = self.idata[(k, 'image')].props.width
                 self.idata[(k, 'h')]     = self.idata[(k, 'image')].props.height
                 self.idata[(k, 'draw')]  = self.draw_svg_icon
             except:
                 try:
-                    self.idata[(k, 'image')] = gtk.gdk.pixbuf_new_from_file(self.idata[(k, 'path')])
+                    self.idata[(k, 'image')] = gtk.gdk.pixbuf_new_from_file(self.idata[(k, 'icon_path')])
                     self.idata[(k, 'w')]     = self.idata[(k, 'image')].get_width()
                     self.idata[(k, 'h')]     = self.idata[(k, 'image')].get_height()
                     self.idata[(k, 'draw')]  = self.draw_pixbuf_icon
@@ -203,6 +216,11 @@ class DesktopButtons():
         cc.scale(w, h)
         cc.set_source_rgba(0,0,0,0.2)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
+
+	cc.save()
+	cc.identity_matrix()
+	self.idata[(key, 'cairo_path')] = cc.copy_path()
+	cc.restore()
         cc.fill()
         cc.restore()
 
