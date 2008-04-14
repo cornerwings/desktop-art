@@ -9,7 +9,7 @@ from roundedrec import roundedrec
 
 ROUNDNESS = 0.3 
 REFLECTION_HIGHT = 0.4
-REFLECTION_INTENSITY = 0.5
+REFLECTION_INTENSITY = 0.4
 HOVER_SIZE = 0.7
 BORDER = 0.06
 UNKNOWN_COVER = -1
@@ -249,6 +249,7 @@ class DesktopButtons():
 
     def draw_svg_icon(self, cc, key):
         cc.push_group()
+        cc.set_operator(cairo.OPERATOR_OVER)
         cc.scale(self.idata[(key, 'scale')], self.idata[(key, 'scale')])
         self.idata[(key, 'image')].render_cairo(cc)
         cc.set_source(cc.pop_group())
@@ -320,6 +321,7 @@ class CoverImage():
         cc.save()
         cc.scale(self.scale, self.scale)
         cc.push_group()
+        cc.set_operator(cairo.OPERATOR_OVER)
         cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.2)
         cc.paint()
         self.image.render_cairo(cc)
