@@ -10,7 +10,7 @@ from roundedrec import roundedrec
 ROUNDNESS = 0.3 
 REFLECTION_HIGHT = 0.4
 REFLECTION_INTENSITY = 0.4
-BLUR=1
+BLUR=1                           # COMPUTATIONAL INTENSIVE FOR LARGER(>~2) VALUES
 HOVER_SIZE = 0.7
 BORDER = 0.06
 UNKNOWN_COVER = -1
@@ -172,7 +172,7 @@ class SongInfo():
         if song_info:
             for key in ('title', 'artist', 'album'):
                 if song_info[key]:
-			self.text += '%s%s%s\n' % (self.tags[key][0], song_info[key], self.tags[key][1])
+			self.text += '%s%s%s\n' % (self.tags[key][0], song_info[key].replace('&', '&amp;'), self.tags[key][1])
             self.text = self.text[:-1]
 
     def draw(self, cc):

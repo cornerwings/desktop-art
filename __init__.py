@@ -27,7 +27,7 @@ class DesktopArt(rb.Plugin):
 		window.set_keep_below(True)
 		window.add(desktop_control)
 		width, height = window.get_size()
-		window.move(40, gtk.gdk.screen_height() - height)
+		window.move(50, gtk.gdk.screen_height() - height - 40)
 
 		self.player = player
 		self.cb = player.connect('playing-changed', self.playing_changed, desktop_control, cover_manager)
