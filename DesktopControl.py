@@ -10,6 +10,7 @@ from roundedrec import roundedrec
 ROUNDNESS = 0.3 
 REFLECTION_HIGHT = 0.4
 REFLECTION_INTENSITY = 0.4
+BLUR=1
 HOVER_SIZE = 0.7
 BORDER = 0.06
 UNKNOWN_COVER = -1
@@ -47,8 +48,9 @@ class DesktopControl(gtk.DrawingArea):
 	self.connect('button-press-event', self.button_press, self.desktop_buttons)
 
     def button_press(self, w, e, affected):
-        if not affected.button_press(e):
-            self.shell.props.visibility = not self.shell.props.visibility
+        if e.button == 1:
+            if not affected.button_press():
+                self.shell.props.visibility = not self.shell.props.visibility
 
     def mouse_motion(self, w, e, affected):
         if affected.set_mouse_position(self, e.x, e.y):
@@ -90,7 +92,8 @@ class DesktopControl(gtk.DrawingArea):
 
         # Scale the context so that the cover image area is 1 x 1
         rect = self.get_allocation()
-        cover_area_size = min(rect.width, rect.height / (1 + REFLECTION_HIGHT))
+        cover_area_size = min(rect.width - BLUR/2, (rect.height - BLUR/2) / (1 + REFLECTION_HIGHT))
+        cc.translate(BLUR/2, 0)
         cc.scale(cover_area_size, cover_area_size)
 
         cc.push_group()
@@ -110,9 +113,25 @@ class DesktopControl(gtk.DrawingArea):
         cc.set_operator(cairo.OPERATOR_OVER)
         cc.paint()
 
+
+        cc.set_operator(cairo.OPERATOR_ADD)
+
         # Draw reflections
         cc.translate(0, 2.02)
         cc.scale(1, -1)
+        cc.push_group()
+        x_scale = cc.get_matrix()[0]
+        r1 = int(BLUR / 2 + 1.5)
+        r0 = r1 - BLUR - 1
+        bn = (BLUR + 1)**2
+        for dx in xrange(r0, r1):
+            for dy in xrange(r0, r1):
+                cc.save()
+                cc.translate(dx/x_scale, dy/x_scale)
+                cc.set_source(graphics)
+                cc.paint_with_alpha(1/bn)
+                cc.restore()
+        graphics = cc.pop_group()
         cc.set_source(graphics)
         shadow_mask = cairo.LinearGradient(0, 1 - REFLECTION_HIGHT, 0, 1)
         shadow_mask.add_color_stop_rgba(0, 0, 0, 0, 0)
@@ -186,17 +205,16 @@ class DesktopButtons():
     def set_playing(self, playing):
         self.playing = playing
 
-    def button_press(self, event):
-        if event.button == 1:
-            if self.idata[('previous', 'hover')]:
-                self.player.do_previous()
-                return True
-            elif self.idata[('play', 'hover')]:
-                self.player.playpause()
-                return True
-            elif self.idata[('next', 'hover')]:
-                self.player.do_next()
-                return True
+    def button_press(self):
+        if self.idata[('previous', 'hover')]:
+            self.player.do_previous()
+            return True
+        elif self.idata[('play', 'hover')]:
+            self.player.playpause()
+            return True
+        elif self.idata[('next', 'hover')]:
+            self.player.do_next()
+            return True
         return False
 
     def set_mouse_position(self, w, x, y):

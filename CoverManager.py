@@ -1,3 +1,10 @@
+#
+#
+# This is just a mess, dont look any further
+# I only look for localy stored cover images
+#
+#
+
 import rhythmdb
 import DesktopControl
 
@@ -12,11 +19,25 @@ class CoverManager():
         return (self.get_cover(db_entry), self.get_song_info(db_entry))
 
     def get_cover(self, db_entry):
+        # Find cover in music dir
         cover_dir = path.dirname(url2pathname(db_entry.get_playback_uri()).replace('file://', ''))
         for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
-            cover_file = path.join(cover_dir, 'cover.%s' % file_type)
+            for file_name in ('cover', 'album', 'albumart', '.folder', 'folder'):
+                cover_file = path.join(cover_dir, '%s.%s' % (file_name, file_type))
+                if path.isfile(cover_file):
+                    return cover_file
+
+        # Find cover saved by artdisplay plugin
+        song_info = self.get_song_info(db_entry)
+        for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
+            cover_file = path.join(path.expanduser('~/.gnome2/rhythmbox/covers'),
+                                   '%s - %s.%s' %
+                                   (song_info['artist'],
+                                    song_info['album'],
+                                    file_type))
             if path.isfile(cover_file):
                 return cover_file
+        
         # No cover found
         return DesktopControl.UNKNOWN_COVER
 

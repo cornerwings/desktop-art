@@ -31,6 +31,7 @@ class DesktopArt(rb.Plugin):
 
 		self.player = player
 		self.cb = player.connect('playing-changed', self.playing_changed, desktop_control, cover_manager)
+		self.playing_changed(player, player.get_playing(), desktop_control, cover_manager)
 
 		self.window = window
 		self.desktop_control = desktop_control
