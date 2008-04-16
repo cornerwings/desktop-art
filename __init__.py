@@ -16,36 +16,47 @@ class DesktopArt(rb.Plugin):
 		rb.Plugin.__init__ (self)
 
 	def activate (self, shell):
-		player = shell.get_player()
-
-		desktop_control = DesktopControl(icons, shell, player)
-		cover_manager = CoverManager(player.props.db)
-
 		window =  gtk.glade.XML(self.find_file('desktop-art.glade')).get_widget('window')
-		window.set_colormap(window.get_screen().get_rgba_colormap())
-		window.stick()
-		window.set_keep_below(True)
-		window.add(desktop_control)
-		width, height = window.get_size()
-		window.move(50, gtk.gdk.screen_height() - height - 40)
+		self.composited = window.is_composited()
+		if self.composited:
+			player = shell.get_player()
 
-		self.player = player
-		self.cb = player.connect('playing-changed', self.playing_changed, desktop_control, cover_manager)
-		self.playing_changed(player, player.get_playing(), desktop_control, cover_manager)
+			desktop_control = DesktopControl(icons, shell, player)
+			cover_manager = CoverManager(player.props.db)
 
-		self.window = window
-		self.desktop_control = desktop_control
-		self.cover_manager = cover_manager
-		window.show_all()
-
+			window.set_colormap(window.get_screen().get_rgba_colormap())
+			window.stick()
+			window.set_keep_below(True)
+			window.add(desktop_control)
+			width, height = window.get_size()
+			window.move(50, gtk.gdk.screen_height() - height - 40)
+			
+			self.player = player
+			self.cb = player.connect('playing-changed', self.playing_changed, desktop_control, cover_manager)
+			self.playing_changed(player, player.get_playing(), desktop_control, cover_manager)
+			
+			self.window = window
+			self.desktop_control = desktop_control
+			self.cover_manager = cover_manager
+			window.show_all()
+		else:
+			# We don't have compisiting
+			md = gtk.MessageDialog(type=gtk.MESSAGE_ERROR,
+					       buttons=gtk.BUTTONS_OK,
+					       message_format='You are not running under a composited desktop-environment. The Desktop Art Plugin cannot work without one.')
+			md.run()
+			md.destroy()
+			
 	def deactivate(self, shell):
-		self.window.destroy()
-		self.player.disconnect(self.cb)
-		del self.desktop_control
-		del self.cover_manager
-		del self.window
-		del self.cb
-		del self.player
+		if self.composited:
+			self.window.destroy()
+			self.player.disconnect(self.cb)
+			del self.desktop_control
+			del self.cover_manager
+			del self.window
+			del self.cb
+			del self.player
+		del self.composited
 
 	def playing_changed(self, player, playing, desktop_control, cover_manager):
 		desktop_control.set_playing(playing)
