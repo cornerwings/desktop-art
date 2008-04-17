@@ -7,7 +7,7 @@ import gconf
 import rsvg
 from roundedrec import roundedrec
 
-ROUNDNESS = 0.3 
+ROUNDNESS = 0.3
 REFLECTION_HIGHT = 0.4
 REFLECTION_INTENSITY = 0.4
 BLUR=1                           # COMPUTATIONAL INTENSIVE FOR LARGER(>~2) VALUES
@@ -397,11 +397,21 @@ class CoverImage():
 
     def draw_pixbuf(self, cc):
         cc.save()
-        cc.set_operator(cairo.OPERATOR_OVER)
+        cc.set_operator(cairo.OPERATOR_SOURCE)
         cc.scale(self.scale, self.scale)
         roundedrec(cc, self.x, self.y, self.w, self.h, ROUNDNESS)
         cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A)
         cc.fill_preserve()
+        cc.set_operator(cairo.OPERATOR_OVER)
+        ##
+        ## THE FOLLOWING IS JUST A SIMPLE HACK TO REMOVE A DARK BORDER THAT APPEAR ON THE PICTURES
+        ##
+        BH = 0.01
+        cc.translate(-self.w * BH / 2, -self.h * BH / 2)
+        cc.scale(1 + BH, 1 + BH)
+        ##
+        ## END HACK
+        ##
         cc.set_source_pixbuf(self.image, self.x, self.y)
         cc.fill()
         cc.restore()
