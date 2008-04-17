@@ -17,6 +17,15 @@ UNKNOWN_COVER = -1
 COLOR_R = 0
 COLOR_G = 0
 COLOR_B = 0
+COLOR_A = 0.3
+TEXT_COLOR_R = 1
+TEXT_COLOR_G = 1
+TEXT_COLOR_B = 1
+TEXT_COLOR_A = 1
+TEXT_SHADOW_COLOR_R = 0
+TEXT_SHADOW_COLOR_G = 0
+TEXT_SHADOW_COLOR_B = 0
+TEXT_SHADOW_COLOR_A = 1
 
 def get_icon_path(theme, name, size):
     icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
@@ -114,9 +123,9 @@ class DesktopControl(gtk.DrawingArea):
         cc.paint()
 
 
-        cc.set_operator(cairo.OPERATOR_ADD)
-
         # Draw reflections
+        cc.save()
+        cc.set_operator(cairo.OPERATOR_ADD)
         cc.translate(0, 2.02)
         cc.scale(1, -1)
         cc.push_group()
@@ -137,6 +146,7 @@ class DesktopControl(gtk.DrawingArea):
         shadow_mask.add_color_stop_rgba(0, 0, 0, 0, 0)
         shadow_mask.add_color_stop_rgba(1, 0, 0, 0, REFLECTION_INTENSITY)
         cc.mask(shadow_mask)
+        cc.restore()
 
         # Input mask, only the cover image is clickable
         # Will, (and should) only work if parent is gtk.Window
@@ -185,7 +195,13 @@ class SongInfo():
             layout.set_font_description(pango.FontDescription(self.font))
             txw, txh = layout.get_size()
             cc.translate(x_scale * (1 + BORDER), x_scale * (1 - BORDER / 2) - txh / pango.SCALE)
-            cc.set_source_rgb(COLOR_R, COLOR_G, COLOR_B)
+            # Draw text shadow
+            cc.translate(1,1)
+            cc.set_source_rgba(TEXT_SHADOW_COLOR_R, TEXT_SHADOW_COLOR_G, TEXT_SHADOW_COLOR_B, TEXT_SHADOW_COLOR_A)
+            cc.show_layout(layout)
+            # Draw text
+            cc.translate(-1,-1)
+            cc.set_source_rgba(TEXT_COLOR_R, TEXT_COLOR_G, TEXT_COLOR_B, TEXT_COLOR_A)
             cc.show_layout(layout)
             cc.restore()
 
@@ -251,7 +267,7 @@ class DesktopButtons():
     def draw(self, cc):
         cc.save()
         cc.set_operator(cairo.OPERATOR_OVER)
-        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.3)
+        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A + 0.1)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         y = HOVER_SIZE + 2 * BORDER
@@ -361,7 +377,7 @@ class CoverImage():
 
     def draw_background(self, cc):
         cc.save()
-        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.2)
+        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A)
         roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
         cc.fill()
         cc.restore()
@@ -371,7 +387,7 @@ class CoverImage():
         cc.scale(self.scale, self.scale)
         cc.push_group()
         cc.set_operator(cairo.OPERATOR_OVER)
-        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.2)
+        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A)
         cc.paint()
         self.image.render_cairo(cc)
         cc.set_source(cc.pop_group())
@@ -384,7 +400,7 @@ class CoverImage():
         cc.set_operator(cairo.OPERATOR_OVER)
         cc.scale(self.scale, self.scale)
         roundedrec(cc, self.x, self.y, self.w, self.h, ROUNDNESS)
-        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, 0.2)
+        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A)
         cc.fill_preserve()
         cc.set_source_pixbuf(self.image, self.x, self.y)
         cc.fill()
