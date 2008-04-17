@@ -30,7 +30,7 @@ UNKNOWN_COVER = -1
 
 ALIGN_LEFT = 0
 ALIGN_RIGHT = 1
-ALIGN = ALIGN_RIGHT
+ALIGN = ALIGN_LEFT
 
 def get_icon_path(theme, name, size):
     icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
