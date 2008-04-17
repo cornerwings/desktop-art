@@ -13,7 +13,6 @@ REFLECTION_INTENSITY = 0.4
 BLUR=1                           # COMPUTATIONAL INTENSIVE FOR LARGER(>~2) VALUES
 HOVER_SIZE = 0.7
 BORDER = 0.06
-UNKNOWN_COVER = -1
 COLOR_R = 0
 COLOR_G = 0
 COLOR_B = 0
@@ -21,11 +20,17 @@ COLOR_A = 0.3
 TEXT_COLOR_R = 1
 TEXT_COLOR_G = 1
 TEXT_COLOR_B = 1
-TEXT_COLOR_A = 1
+TEXT_COLOR_A = 0.7
 TEXT_SHADOW_COLOR_R = 0
 TEXT_SHADOW_COLOR_G = 0
 TEXT_SHADOW_COLOR_B = 0
-TEXT_SHADOW_COLOR_A = 1
+TEXT_SHADOW_COLOR_A = 0.7
+
+UNKNOWN_COVER = -1
+
+ALIGN_LEFT = 0
+ALIGN_RIGHT = 1
+ALIGN = ALIGN_RIGHT
 
 def get_icon_path(theme, name, size):
     icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
@@ -102,7 +107,13 @@ class DesktopControl(gtk.DrawingArea):
         # Scale the context so that the cover image area is 1 x 1
         rect = self.get_allocation()
         cover_area_size = min(rect.width - BLUR/2, (rect.height - BLUR/2) / (1 + REFLECTION_HIGHT))
-        cc.translate(BLUR/2, 0)
+
+        if ALIGN == ALIGN_RIGHT:
+            x_trans = rect.width - cover_area_size - BLUR/2
+        else:
+            x_trans = BLUR/2
+
+        cc.translate(x_trans, 0)
         cc.scale(cover_area_size, cover_area_size)
 
         cc.push_group()
@@ -154,7 +165,7 @@ class DesktopControl(gtk.DrawingArea):
         ccmask = pixmask.cairo_create()
         roundedrec(ccmask, 0, 0, cover_area_size, cover_area_size, ROUNDNESS)
         ccmask.fill()
-        self.get_parent().input_shape_combine_mask(pixmask, 0, 0)
+        self.get_parent().input_shape_combine_mask(pixmask, int(x_trans), 0)
 
     def set_song(self, cover_image=None, song_info=None):
         self.cover_image.set_image(cover_image)
@@ -189,12 +200,19 @@ class SongInfo():
         if self.text:
             cc.save()
             x_scale = cc.get_matrix()[0]
+            x_trans = cc.get_matrix()[4]
             cc.identity_matrix()
             layout = cc.create_layout()
             layout.set_markup(self.text)
             layout.set_font_description(pango.FontDescription(self.font))
             txw, txh = layout.get_size()
-            cc.translate(x_scale * (1 + BORDER), x_scale * (1 - BORDER / 2) - txh / pango.SCALE)
+            if ALIGN == ALIGN_RIGHT:
+                x_trans = x_trans - txw / pango.SCALE - x_scale * BORDER
+                layout.set_alignment(pango.ALIGN_RIGHT)
+            else:
+                x_trans = x_trans + x_scale * (1 + BORDER)
+                layout.set_alignment(pango.ALIGN_LEFT)
+            cc.translate(x_trans, x_scale * (1 - BORDER / 2) - txh / pango.SCALE)
             # Draw text shadow
             cc.translate(1,1)
             cc.set_source_rgba(TEXT_SHADOW_COLOR_R, TEXT_SHADOW_COLOR_G, TEXT_SHADOW_COLOR_B, TEXT_SHADOW_COLOR_A)
