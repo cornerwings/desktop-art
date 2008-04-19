@@ -7,6 +7,16 @@ import gconf
 import rsvg
 from roundedrec import roundedrec
 
+# CONSTANTS
+
+UNKNOWN_COVER = -1
+POSITION_NW = 'nw'
+POSITION_NE = 'ne'
+POSITION_SW = 'sw'
+POSITION_SE = 'se'
+
+# DEFAULT VALUES
+
 ROUNDNESS = 0.3
 REFLECTION_HIGHT = 0.4
 REFLECTION_INTENSITY = 0.4
@@ -20,17 +30,13 @@ COLOR_A = 0.3
 TEXT_COLOR_R = 1
 TEXT_COLOR_G = 1
 TEXT_COLOR_B = 1
-TEXT_COLOR_A = 0.7
+TEXT_COLOR_A = 1
 TEXT_SHADOW_COLOR_R = 0
 TEXT_SHADOW_COLOR_G = 0
 TEXT_SHADOW_COLOR_B = 0
-TEXT_SHADOW_COLOR_A = 0.7
+TEXT_SHADOW_COLOR_A = 1
 
-UNKNOWN_COVER = -1
-
-ALIGN_LEFT = 0
-ALIGN_RIGHT = 1
-ALIGN = ALIGN_LEFT
+TEXT_POSITION = POSITION_NW
 
 def get_icon_path(theme, name, size):
     icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
@@ -108,7 +114,7 @@ class DesktopControl(gtk.DrawingArea):
         rect = self.get_allocation()
         cover_area_size = min(rect.width - BLUR/2, (rect.height - BLUR/2) / (1 + REFLECTION_HIGHT))
 
-        if ALIGN == ALIGN_RIGHT:
+        if TEXT_POSITION in [POSITION_SW, POSITION_NW]:
             x_trans = rect.width - cover_area_size - BLUR/2
         else:
             x_trans = BLUR/2
@@ -206,13 +212,17 @@ class SongInfo():
             layout.set_markup(self.text)
             layout.set_font_description(pango.FontDescription(self.font))
             txw, txh = layout.get_size()
-            if ALIGN == ALIGN_RIGHT:
+            if TEXT_POSITION in [POSITION_SW, POSITION_NW]:
                 x_trans = x_trans - txw / pango.SCALE - x_scale * BORDER
                 layout.set_alignment(pango.ALIGN_RIGHT)
             else:
                 x_trans = x_trans + x_scale * (1 + BORDER)
                 layout.set_alignment(pango.ALIGN_LEFT)
-            cc.translate(x_trans, x_scale * (1 - BORDER / 2) - txh / pango.SCALE)
+            if TEXT_POSITION in [POSITION_NE, POSITION_NW]:
+                y_trans = x_scale * BORDER / 2
+            else:
+                y_trans = x_scale * (1 - BORDER / 2) - txh / pango.SCALE
+            cc.translate(x_trans, y_trans)
             # Draw text shadow
             cc.translate(1,1)
             cc.set_source_rgba(TEXT_SHADOW_COLOR_R, TEXT_SHADOW_COLOR_G, TEXT_SHADOW_COLOR_B, TEXT_SHADOW_COLOR_A)
