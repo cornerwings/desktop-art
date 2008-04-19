@@ -36,7 +36,7 @@ TEXT_SHADOW_COLOR_G = 0
 TEXT_SHADOW_COLOR_B = 0
 TEXT_SHADOW_COLOR_A = 1
 
-TEXT_POSITION = POSITION_NW
+TEXT_POSITION = POSITION_SE
 
 def get_icon_path(theme, name, size):
     icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
