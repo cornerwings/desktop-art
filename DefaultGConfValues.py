@@ -2,17 +2,22 @@ import gconf
 
 gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art/'
 
-defaults = {'cover_roundness'   : 0.3,
-            'background_color'  : '#0000000000004ccc',
-            'text_color'        : '#ffffffffffffb332',
-            'text_shadow_color' : '#000000000000b332',
-            'reflection'        : True,
-            'window_x'          : 50,
-            'window_y'          : 80,
-            'window_w'          : 400,
-            'window_h'          : 180,
-            'text_position'     : 'se',
-            'blur'              : 1}
+defaults = {'cover_roundness'      : 0.3,
+            'background_color'     : '#0000000000004ccc',
+            'text_color'           : '#ffffffffffffb332',
+            'text_shadow_color'    : '#000000000000b332',
+            'draw_reflection'      : True,
+            'window_x'             : 50,
+            'window_y'             : 80,
+            'window_w'             : 400,
+            'window_h'             : 180,
+            'text_position'        : 'se',
+            'blur'                 : 1,
+            'reflection_height'    : 0.4,
+            'reflection_intensity' : 0.4,
+            'hover_size'           : 0.7,
+            'roundness'            : 0.3,
+            'border'               : 0.06}
             
 def gconf_path(key):
     return '%s%s' % (gconf_plugin_path, key)

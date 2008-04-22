@@ -2,9 +2,9 @@ import gtk, gtk.glade
 import gconf
 
 widget_names = ['main_area',
-                'cover_roundness',
+                'roundness',
                 'background_color', 'text_color', 'text_shadow_color',
-                'reflection',
+                'draw_reflection',
                 'window_x', 'window_y', 'window_w', 'window_h',
                 'text_position_nw', 'text_position_ne', 'text_position_sw', 'text_position_se']
 
@@ -45,15 +45,15 @@ class ConfigDialog(gtk.Dialog):
                     value = self.gc.get_float(self.gconf_path(name))
                 if value:
                     w[name].set_value(value)
+            elif isinstance(w[name], gtk.RadioButton):
+                key, val = name.rsplit('_', 1)
+                w[name].set_active(self.gc.get_string(self.gconf_path(key)) == val)
             elif isinstance(w[name], gtk.CheckButton):
                 value = self.gc.get_without_default(self.gconf_path(name))
                 if value:
                     w[name].set_active(value.get_bool())
                 else:
                     w[name].set_active(True)
-            elif isinstance(w[name], gtk.RadioButton):
-                key, val = name.rsplit('_', 1)
-                w[name].set_active(self.gc.get_string(self.gconf_path(key))  == val)
             elif isinstance(w[name], gtk.ColorButton):
                 rgba = self.gc.get_string(self.gconf_path(name))
                 rgb = gtk.gdk.color_parse(rgba[:-4])

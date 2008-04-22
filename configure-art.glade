@@ -72,7 +72,7 @@
                     <property name="xscale">0</property>
                     <property name="yscale">0</property>
                     <child>
-                      <widget class="GtkCheckButton" id="reflection">
+                      <widget class="GtkCheckButton" id="draw_reflection">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="response_id">0</property>
@@ -143,7 +143,7 @@
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkSpinButton" id="cover_roundness">
+                  <widget class="GtkSpinButton" id="roundness">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="width_chars">4</property>

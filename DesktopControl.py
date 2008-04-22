@@ -15,32 +15,33 @@ POSITION_NE = 'ne'
 POSITION_SW = 'sw'
 POSITION_SE = 'se'
 
-# DEFAULT VALUES
-
-ROUNDNESS = 0.3
-REFLECTION_HIGHT = 0.4
-REFLECTION_INTENSITY = 0.4
-BLUR=1                           # COMPUTATIONAL INTENSIVE FOR LARGER(>~2) VALUES
-HOVER_SIZE = 0.7
-BORDER = 0.06
-COLOR_R = 0
-COLOR_G = 0
-COLOR_B = 0
-COLOR_A = 0.3
-TEXT_COLOR_R = 1
-TEXT_COLOR_G = 1
-TEXT_COLOR_B = 1
-TEXT_COLOR_A = 1
-TEXT_SHADOW_COLOR_R = 0
-TEXT_SHADOW_COLOR_G = 0
-TEXT_SHADOW_COLOR_B = 0
-TEXT_SHADOW_COLOR_A = 1
-
-TEXT_POSITION = POSITION_SE
+gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art/'
 
 def get_icon_path(theme, name, size):
     icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
     return (icon and icon.get_filename())
+
+def gconf_path(key):
+    return '%s%s' % (gconf_plugin_path, key)
+
+def read_gconf_values(values, keys):
+    gc = gconf.client_get_default()
+    for key in keys:
+        val = gc.get_without_default(gconf_path(key))
+        if val.type == gconf.VALUE_FLOAT:
+            values[key] = val.get_float()
+        elif val.type == gconf.VALUE_INT:
+            values[key] = val.get_int()
+        elif val.type == gconf.VALUE_STRING:
+            values[key] = val.get_string()
+        elif val.type == gconf.VALUE_BOOL:
+            values[key] = val.get_bool()
+        # Parse color strings
+        if 'color' in key:
+            values['%s_r' % key] = int(values[key][ 1: 5], 16) / int('ffff', 16)
+            values['%s_g' % key] = int(values[key][ 5: 9], 16) / int('ffff', 16)
+            values['%s_b' % key] = int(values[key][ 9:13], 16) / int('ffff', 16)
+            values['%s_a' % key] = int(values[key][13:17], 16) / int('ffff', 16)
 
 class DesktopControl(gtk.DrawingArea):
     def __init__(self, icons, shell, player):
@@ -67,6 +68,10 @@ class DesktopControl(gtk.DrawingArea):
         self.connect('leave-notify-event', self.enter_leave)
 	self.connect('motion-notify-event', self.mouse_motion, self.desktop_buttons)
 	self.connect('button-press-event', self.button_press, self.desktop_buttons)
+
+        self.gconf_keys = ['background_color', 'roundness', 'hover_size', 'border', 'draw_reflection', 'reflection_height', 'reflection_intensity', 'blur', 'text_position']
+        self.conf = {}
+        read_gconf_values(self.conf, self.gconf_keys)
 
     def button_press(self, w, e, affected):
         if e.button == 1:
@@ -113,12 +118,15 @@ class DesktopControl(gtk.DrawingArea):
 
         # Scale the context so that the cover image area is 1 x 1
         rect = self.get_allocation()
-        cover_area_size = min(rect.width - BLUR/2, (rect.height - BLUR/2) / (1 + REFLECTION_HIGHT))
-
-        if TEXT_POSITION in [POSITION_SW, POSITION_NW]:
-            x_trans = rect.width - cover_area_size - BLUR/2
+        if self.conf['draw_reflection']:
+            cover_area_size = min(rect.width - self.conf['blur']/2, (rect.height - self.conf['blur']/2) / (1 + self.conf['reflection_height']))
         else:
-            x_trans = BLUR/2
+            cover_area_size = min(rect.width - self.conf['blur']/2, (rect.height - self.conf['blur']/2))
+
+        if self.conf['text_position'] in [POSITION_SW, POSITION_NW]:
+            x_trans = rect.width - cover_area_size - self.conf['blur']/2
+        else:
+            x_trans = self.conf['blur']/2
 
         cc.translate(x_trans, 0)
         cc.scale(cover_area_size, cover_area_size)
@@ -128,8 +136,8 @@ class DesktopControl(gtk.DrawingArea):
         if self.mouse_over:
             self.desktop_buttons.draw(cc)
             cc.save()
-            cc.translate((1 - HOVER_SIZE) / 2, BORDER)
-            cc.scale(HOVER_SIZE, HOVER_SIZE)
+            cc.translate((1 - self.conf['hover_size']) / 2, self.conf['border'])
+            cc.scale(self.conf['hover_size'], self.conf['hover_size'])
         self.cover_image.draw(cc)
         if self.mouse_over:
             cc.restore()
@@ -142,35 +150,36 @@ class DesktopControl(gtk.DrawingArea):
 
 
         # Draw reflections
-        cc.save()
-        cc.set_operator(cairo.OPERATOR_ADD)
-        cc.translate(0, 2.02)
-        cc.scale(1, -1)
-        cc.push_group()
-        x_scale = cc.get_matrix()[0]
-        r1 = int(BLUR / 2 + 1.5)
-        r0 = r1 - BLUR - 1
-        bn = (BLUR + 1)**2
-        for dx in xrange(r0, r1):
-            for dy in xrange(r0, r1):
-                cc.save()
-                cc.translate(dx/x_scale, dy/x_scale)
-                cc.set_source(graphics)
-                cc.paint_with_alpha(1/bn)
-                cc.restore()
-        graphics = cc.pop_group()
-        cc.set_source(graphics)
-        shadow_mask = cairo.LinearGradient(0, 1 - REFLECTION_HIGHT, 0, 1)
-        shadow_mask.add_color_stop_rgba(0, 0, 0, 0, 0)
-        shadow_mask.add_color_stop_rgba(1, 0, 0, 0, REFLECTION_INTENSITY)
-        cc.mask(shadow_mask)
-        cc.restore()
+        if self.conf['draw_reflection']:
+            cc.save()
+            cc.set_operator(cairo.OPERATOR_ADD)
+            cc.translate(0, 2.02)
+            cc.scale(1, -1)
+            cc.push_group()
+            x_scale = cc.get_matrix()[0]
+            r1 = int(self.conf['blur'] / 2 + 1.5)
+            r0 = r1 - self.conf['blur'] - 1
+            bn = (self.conf['blur'] + 1)**2
+            for dx in xrange(r0, r1):
+                for dy in xrange(r0, r1):
+                    cc.save()
+                    cc.translate(dx/x_scale, dy/x_scale)
+                    cc.set_source(graphics)
+                    cc.paint_with_alpha(1/bn)
+                    cc.restore()
+            graphics = cc.pop_group()
+            cc.set_source(graphics)
+            shadow_mask = cairo.LinearGradient(0, 1 - self.conf['reflection_height'], 0, 1)
+            shadow_mask.add_color_stop_rgba(0, 0, 0, 0, 0)
+            shadow_mask.add_color_stop_rgba(1, 0, 0, 0, self.conf['reflection_intensity'])
+            cc.mask(shadow_mask)
+            cc.restore()
 
         # Input mask, only the cover image is clickable
         # Will, (and should) only work if parent is gtk.Window
         pixmask = gtk.gdk.Pixmap(None, int(cover_area_size), int(cover_area_size), 1)
         ccmask = pixmask.cairo_create()
-        roundedrec(ccmask, 0, 0, cover_area_size, cover_area_size, ROUNDNESS)
+        roundedrec(ccmask, 0, 0, cover_area_size, cover_area_size, self.conf['roundness'])
         ccmask.fill()
         self.get_parent().input_shape_combine_mask(pixmask, int(x_trans), 0)
 
@@ -205,6 +214,10 @@ class SongInfo():
     def __init__(self, song_info=None):
         self.set_text(song_info)
 
+        self.gconf_keys = ['border', 'text_position', 'text_color', 'text_shadow_color']
+        self.conf = {}
+        read_gconf_values(self.conf, self.gconf_keys)
+
     def font_changed(self, font):
         self.font = font
     
@@ -226,24 +239,24 @@ class SongInfo():
             layout.set_markup(self.text)
             layout.set_font_description(pango.FontDescription(self.font))
             txw, txh = layout.get_size()
-            if TEXT_POSITION in [POSITION_SW, POSITION_NW]:
-                x_trans = x_trans - txw / pango.SCALE - x_scale * BORDER
+            if self.conf['text_position'] in [POSITION_SW, POSITION_NW]:
+                x_trans = x_trans - txw / pango.SCALE - x_scale * self.conf['border']
                 layout.set_alignment(pango.ALIGN_RIGHT)
             else:
-                x_trans = x_trans + x_scale * (1 + BORDER)
+                x_trans = x_trans + x_scale * (1 + self.conf['border'])
                 layout.set_alignment(pango.ALIGN_LEFT)
-            if TEXT_POSITION in [POSITION_NE, POSITION_NW]:
-                y_trans = x_scale * BORDER / 2
+            if self.conf['text_position'] in [POSITION_NE, POSITION_NW]:
+                y_trans = x_scale * self.conf['border'] / 2
             else:
-                y_trans = x_scale * (1 - BORDER / 2) - txh / pango.SCALE
+                y_trans = x_scale * (1 - self.conf['border'] / 2) - txh / pango.SCALE
             cc.translate(x_trans, y_trans)
             # Draw text shadow
             cc.translate(1,1)
-            cc.set_source_rgba(TEXT_SHADOW_COLOR_R, TEXT_SHADOW_COLOR_G, TEXT_SHADOW_COLOR_B, TEXT_SHADOW_COLOR_A)
+            cc.set_source_rgba(self.conf['text_shadow_color_r'], self.conf['text_shadow_color_g'], self.conf['text_shadow_color_b'], self.conf['text_shadow_color_a'])
             cc.show_layout(layout)
             # Draw text
             cc.translate(-1,-1)
-            cc.set_source_rgba(TEXT_COLOR_R, TEXT_COLOR_G, TEXT_COLOR_B, TEXT_COLOR_A)
+            cc.set_source_rgba(self.conf['text_color_r'], self.conf['text_color_g'], self.conf['text_color_b'], self.conf['text_color_a'])
             cc.show_layout(layout)
             cc.restore()
 
@@ -259,6 +272,10 @@ class DesktopButtons():
             self.idata[(k, 'hover')] = False
         self.icon_theme_changed(gtk.icon_theme_get_default())
         self.playing = player.get_playing()
+
+        self.gconf_keys = ['roundness', 'hover_size', 'border', 'background_color']
+        self.conf = {}
+        read_gconf_values(self.conf, self.gconf_keys)
 
     def set_playing(self, playing):
         self.playing = playing
@@ -309,18 +326,18 @@ class DesktopButtons():
     def draw(self, cc):
         cc.save()
         cc.set_operator(cairo.OPERATOR_OVER)
-        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A + 0.1)
-        roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
+        cc.set_source_rgba(self.conf['background_color_r'], self.conf['background_color_g'], self.conf['background_color_b'], self.conf['background_color_a'] + 0.1)
+        roundedrec(cc, 0, 0, 1, 1, self.conf['roundness'])
         cc.fill()
-        y = HOVER_SIZE + 2 * BORDER
-        h = 1 - y - BORDER
+        y = self.conf['hover_size'] + 2 * self.conf['border']
+        h = 1 - y - self.conf['border']
         n = len(self.icon_keys)
-        w = (1 - (2 + n - 1) * BORDER) / n
-        cc.translate(BORDER, y)
+        w = (1 - (2 + n - 1) * self.conf['border']) / n
+        cc.translate(self.conf['border'], y)
         for k in self.icon_keys:
             self.draw_icon(cc, k, w, h, self.idata[(k, 'hover')])
             cc.fill()
-            cc.translate(BORDER + w, 0)
+            cc.translate(self.conf['border'] + w, 0)
         cc.restore()
 
     def draw_icon(self, cc, key, w, h, hover):
@@ -328,7 +345,7 @@ class DesktopButtons():
 
         cc.save()
         cc.scale(w, h)
-        roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
+        roundedrec(cc, 0, 0, 1, 1, self.conf['roundness'])
 
 	cc.save()
 	cc.identity_matrix()
@@ -360,19 +377,23 @@ class DesktopButtons():
         cc.scale(self.idata[(key, 'scale')], self.idata[(key, 'scale')])
         self.idata[(key, 'image')].render_cairo(cc)
         cc.set_source(cc.pop_group())
-        roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
+        roundedrec(cc, 0, 0, 1, 1, self.conf['roundness'])
         cc.fill()
             
     def draw_pixbuf_icon(self, cc, key):
         cc.scale(self.idata[(key, 'scale')], self.idata[(key, 'scale')])
         cc.set_source_pixbuf(self.idata[(key, 'image')], 0, 0)
-        roundedrec(cc, 0, 0, self.idata[(key, 'w')], self.idata[(key, 'h')], ROUNDNESS)
+        roundedrec(cc, 0, 0, self.idata[(key, 'w')], self.idata[(key, 'h')], self.conf['roundness'])
         cc.fill()
 
 class CoverImage():
     def __init__(self, icons):
         self.icons = icons
         self.icon_theme_changed(gtk.icon_theme_get_default())
+
+        self.gconf_keys = ['roundness', 'background_color']
+        self.conf = {}
+        read_gconf_values(self.conf, self.gconf_keys)
 
     def icon_theme_changed(self, icon_theme):
         not_playing_image = get_icon_path(icon_theme, self.icons['not_playing'], self.icons['size'])
@@ -419,8 +440,8 @@ class CoverImage():
 
     def draw_background(self, cc):
         cc.save()
-        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A)
-        roundedrec(cc, 0, 0, 1, 1, ROUNDNESS)
+        cc.set_source_rgba(self.conf['background_color_r'], self.conf['background_color_g'], self.conf['background_color_b'], self.conf['background_color_a'])
+        roundedrec(cc, 0, 0, 1, 1, self.conf['roundness'])
         cc.fill()
         cc.restore()
 
@@ -429,12 +450,12 @@ class CoverImage():
         cc.scale(self.scale, self.scale)
         cc.push_group()
         cc.set_operator(cairo.OPERATOR_OVER)
-        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A)
+        cc.set_source_rgba(self.conf['background_color_r'], self.conf['background_color_g'], self.conf['background_color_b'], self.conf['background_color_a'])
         cc.paint()
         cc.translate(self.x, self.y)
         self.image.render_cairo(cc)
         cc.set_source(cc.pop_group())
-        roundedrec(cc, self.x, self.y, self.w, self.h, ROUNDNESS)
+        roundedrec(cc, self.x, self.y, self.w, self.h, self.conf['roundness'])
         cc.fill()
         cc.restore()
 
@@ -442,8 +463,8 @@ class CoverImage():
         cc.save()
         cc.set_operator(cairo.OPERATOR_SOURCE)
         cc.scale(self.scale, self.scale)
-        roundedrec(cc, self.x, self.y, self.w, self.h, ROUNDNESS)
-        cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A)
+        roundedrec(cc, self.x, self.y, self.w, self.h, self.conf['roundness'])
+        cc.set_source_rgba(self.conf['background_color_r'], self.conf['background_color_g'], self.conf['background_color_b'], self.conf['background_color_a'])
         cc.fill_preserve()
         cc.set_operator(cairo.OPERATOR_OVER)
         ##
