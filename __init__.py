@@ -4,6 +4,8 @@ import gconf
 
 from DesktopControl import DesktopControl
 from CoverManager import CoverManager
+from ConfigDialog import ConfigDialog
+import DefaultGConfValues
 
 icons = {'previous'      : 'gtk-media-previous-ltr',
          'play'          : 'gtk-media-play-ltr',
@@ -13,12 +15,6 @@ icons = {'previous'      : 'gtk-media-previous-ltr',
 	 'size'          : 500}
 
 gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art/'
-
-# DEFAULTS, can be repalced with gconf schemas
-WINDOW_W = 400
-WINDOW_H = 200
-WINDOW_X = 50
-WINDOW_Y = gtk.gdk.screen_height() - WINDOW_H - 40
 
 class DesktopArt(rb.Plugin):
 	def __init__ (self):
@@ -85,26 +81,22 @@ class DesktopArt(rb.Plugin):
 
 	def create_configure_dialog(self, dialog=None):
 		if not dialog:
-			dialog =  gtk.glade.XML(self.find_file('configure-art.glade')).get_widget('window')
+			dialog =  ConfigDialog(self.find_file('configure-art.glade'), gconf_plugin_path, self.desktop_control)
 			dialog.present()
 		return dialog
 
 	def playing_changed(self, player, playing, desktop_control, cover_manager):
-		desktop_control.set_playing(playing)
-		if playing:
-			c, s = cover_manager.get_cover_and_song_info(player.get_playing_entry())
-			desktop_control.set_song(c, s)
-		else:
-			desktop_control.set_song()
+		c, s = cover_manager.get_cover_and_song_info(player.get_playing_entry())
+		desktop_control.set_song(playing, c, s)
 
 	def gconf_path(self, key):
 		return '%s%s' % (gconf_plugin_path, key)
 
 	def get_gconf_window_props(self, gc):
-		return {'x' : gc.get_int(self.gconf_path('window_x')) or WINDOW_X,
-			'y' : gc.get_int(self.gconf_path('window_y')) or WINDOW_Y,
-			'w' : gc.get_int(self.gconf_path('window_w')) or WINDOW_W,
-			'h' : gc.get_int(self.gconf_path('window_h')) or WINDOW_H}
+		return {'x' : gc.get_int(self.gconf_path('window_x')),
+			'y' : gc.get_int(self.gconf_path('window_y')),
+			'w' : gc.get_int(self.gconf_path('window_w')),
+			'h' : gc.get_int(self.gconf_path('window_h'))}
 		
 	def set_gconf_window_props(self, gc, window):
 		x, y = window.get_position()

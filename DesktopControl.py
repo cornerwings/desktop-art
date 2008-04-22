@@ -51,6 +51,7 @@ class DesktopControl(gtk.DrawingArea):
         self.cover_image = CoverImage(icons)
         self.song_info = SongInfo()
         self.desktop_buttons = DesktopButtons(icons, player)
+        self.draw_border = False
 
         # Find and set up icon and font
         icon_theme = gtk.icon_theme_get_default()
@@ -173,13 +174,26 @@ class DesktopControl(gtk.DrawingArea):
         ccmask.fill()
         self.get_parent().input_shape_combine_mask(pixmask, int(x_trans), 0)
 
-    def set_song(self, cover_image=None, song_info=None):
+        # Draw border
+        if self.draw_border:
+            cc.identity_matrix()
+            cc.rectangle(0, 0, rect.width, rect.height)
+            cc.set_line_width(2)
+            cc.set_source_rgba(1, 1, 1, 0.5)
+            cc.set_dash([10,10], 0)
+            cc.stroke_preserve()
+            cc.set_source_rgba(0, 0, 0, 0.5)
+            cc.set_dash([10,10], 10)
+            cc.stroke()
+
+    def set_song(self, playing=False, cover_image=None, song_info=None):
         self.cover_image.set_image(cover_image)
         self.song_info.set_text(song_info)
+        self.desktop_buttons.set_playing(playing)
         self.queue_draw()
 
-    def set_playing(self, playing):
-        self.desktop_buttons.set_playing(playing)
+    def set_draw_border(self, val=False):
+        self.draw_border = val
         self.queue_draw()
 
 class SongInfo():
@@ -188,7 +202,7 @@ class SongInfo():
 	    'album'  : ['', '']}
     font = gconf.client_get_default().get_string('/apps/nautilus/preferences/desktop_font')
 	
-    def __init__(self, song_info = None):
+    def __init__(self, song_info=None):
         self.set_text(song_info)
 
     def font_changed(self, font):
@@ -417,6 +431,7 @@ class CoverImage():
         cc.set_operator(cairo.OPERATOR_OVER)
         cc.set_source_rgba(COLOR_R, COLOR_G, COLOR_B, COLOR_A)
         cc.paint()
+        cc.translate(self.x, self.y)
         self.image.render_cairo(cc)
         cc.set_source(cc.pop_group())
         roundedrec(cc, self.x, self.y, self.w, self.h, ROUNDNESS)

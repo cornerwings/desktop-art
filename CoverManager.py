@@ -18,32 +18,36 @@ class CoverManager():
     def get_cover_and_song_info(self, db_entry):
         return (self.get_cover(db_entry), self.get_song_info(db_entry))
 
-    def get_cover(self, db_entry):
+    def get_cover(self, db_entry=None):
         # Find cover in music dir
-        cover_dir = path.dirname(url2pathname(db_entry.get_playback_uri()).replace('file://', ''))
-        for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
-            for file_name in ('cover', 'album', 'albumart', '.folder', 'folder'):
-                cover_file = path.join(cover_dir, '%s.%s' % (file_name, file_type))
+        if db_entry:
+            cover_dir = path.dirname(url2pathname(db_entry.get_playback_uri()).replace('file://', ''))
+            for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
+                for file_name in ('cover', 'album', 'albumart', '.folder', 'folder'):
+                    cover_file = path.join(cover_dir, '%s.%s' % (file_name, file_type))
+                    if path.isfile(cover_file):
+                        return cover_file
+
+            # Find cover saved by artdisplay plugin
+            song_info = self.get_song_info(db_entry)
+            for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
+                cover_file = path.join(path.expanduser('~/.gnome2/rhythmbox/covers'),
+                                       '%s - %s.%s' %
+                                       (song_info['artist'],
+                                        song_info['album'],
+                                        file_type))
                 if path.isfile(cover_file):
                     return cover_file
-
-        # Find cover saved by artdisplay plugin
-        song_info = self.get_song_info(db_entry)
-        for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
-            cover_file = path.join(path.expanduser('~/.gnome2/rhythmbox/covers'),
-                                   '%s - %s.%s' %
-                                   (song_info['artist'],
-                                    song_info['album'],
-                                    file_type))
-            if path.isfile(cover_file):
-                return cover_file
         
-        # No cover found
-        return DesktopControl.UNKNOWN_COVER
+            # No cover found
+            return DesktopControl.UNKNOWN_COVER
+        # Not playing
+        return None
 
-    def get_song_info(self, db_entry):
+    def get_song_info(self, db_entry=None):
         song_info = {}
-        song_info['title'] = self.db.entry_get(db_entry, rhythmdb.PROP_TITLE)
-        song_info['artist'] = self.db.entry_get(db_entry, rhythmdb.PROP_ARTIST)
-        song_info['album'] = self.db.entry_get(db_entry, rhythmdb.PROP_ALBUM)
+        if db_entry:
+            song_info['title'] = self.db.entry_get(db_entry, rhythmdb.PROP_TITLE)
+            song_info['artist'] = self.db.entry_get(db_entry, rhythmdb.PROP_ARTIST)
+            song_info['album'] = self.db.entry_get(db_entry, rhythmdb.PROP_ALBUM)
         return song_info
