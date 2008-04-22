@@ -1,4 +1,4 @@
-import gconf
+import gtk, gconf
 
 gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art/'
 
@@ -8,7 +8,7 @@ defaults = {'cover_roundness'      : 0.3,
             'text_shadow_color'    : '#000000000000b332',
             'draw_reflection'      : True,
             'window_x'             : 50,
-            'window_y'             : 80,
+            'window_y'             : gtk.gdk.screen_height() - 180 - 20,
             'window_w'             : 400,
             'window_h'             : 180,
             'text_position'        : 'se',

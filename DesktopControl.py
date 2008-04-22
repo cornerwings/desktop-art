@@ -15,14 +15,14 @@ POSITION_NE = 'ne'
 POSITION_SW = 'sw'
 POSITION_SE = 'se'
 
-gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art/'
+gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art'
 
 def get_icon_path(theme, name, size):
     icon = theme.lookup_icon(name, size, gtk.ICON_LOOKUP_FORCE_SVG)
     return (icon and icon.get_filename())
 
 def gconf_path(key):
-    return '%s%s' % (gconf_plugin_path, key)
+    return '%s/%s' % (gconf_plugin_path, key)
 
 def read_gconf_values(values, keys):
     gc = gconf.client_get_default()
@@ -42,6 +42,10 @@ def read_gconf_values(values, keys):
             values['%s_g' % key] = int(values[key][ 5: 9], 16) / int('ffff', 16)
             values['%s_b' % key] = int(values[key][ 9:13], 16) / int('ffff', 16)
             values['%s_a' % key] = int(values[key][13:17], 16) / int('ffff', 16)
+
+def reread_gconf_value(conf, keys, key):
+    if key in keys:
+        read_gconf_values(conf, [key])
 
 class DesktopControl(gtk.DrawingArea):
     def __init__(self, icons, shell, player):
@@ -72,6 +76,20 @@ class DesktopControl(gtk.DrawingArea):
         self.gconf_keys = ['background_color', 'roundness', 'hover_size', 'border', 'draw_reflection', 'reflection_height', 'reflection_intensity', 'blur', 'text_position']
         self.conf = {}
         read_gconf_values(self.conf, self.gconf_keys)
+
+        self.set_gcon_callbacks([self, self.cover_image, self.song_info, self.desktop_buttons])
+        
+    def set_gcon_callbacks(self, affected):
+        gc = gconf.client_get_default()
+        for entry in gc.all_entries(gconf_plugin_path):
+            path = entry.get_key()
+            key = path.split('/')[-1]
+            gc.notify_add(path, self.gconf_cb, {'key': key, 'affected': affected})
+
+    def gconf_cb(self, client, cnxn_id, entry, ud):
+        for af in ud['affected']:
+            reread_gconf_value(af.conf, af.gconf_keys, ud['key'])
+        self.queue_draw()
 
     def button_press(self, w, e, affected):
         if e.button == 1:
@@ -188,10 +206,10 @@ class DesktopControl(gtk.DrawingArea):
             cc.identity_matrix()
             cc.rectangle(0, 0, rect.width, rect.height)
             cc.set_line_width(2)
-            cc.set_source_rgba(1, 1, 1, 0.5)
+            cc.set_source_rgba(1, 1, 1, 0.35)
             cc.set_dash([10,10], 0)
             cc.stroke_preserve()
-            cc.set_source_rgba(0, 0, 0, 0.5)
+            cc.set_source_rgba(0, 0, 0, 0.35)
             cc.set_dash([10,10], 10)
             cc.stroke()
 
