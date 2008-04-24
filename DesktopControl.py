@@ -61,17 +61,17 @@ class DesktopControl(gtk.DrawingArea):
         # Find and set up icon and font
         icon_theme = gtk.icon_theme_get_default()
         icon_theme.connect('changed', self.icon_theme_changed, [self.cover_image, self.desktop_buttons])
-	gc = gconf.client_get_default()
-	gc.add_dir('/apps/nautilus/preferences', gconf.CLIENT_PRELOAD_NONE)
-	gc.notify_add('/apps/nautilus/preferences/desktop_font', self.font_changed, [self.song_info])
+        gc = gconf.client_get_default()
+        gc.add_dir('/apps/nautilus/preferences', gconf.CLIENT_PRELOAD_NONE)
+        gc.notify_add('/apps/nautilus/preferences/desktop_font', self.font_changed, [self.song_info])
 
         self.add_events(gtk.gdk.ENTER_NOTIFY_MASK | gtk.gdk.LEAVE_NOTIFY_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.BUTTON_PRESS_MASK)
         self.mouse_over = False
         self.hover_time_out = None
         self.connect('enter-notify-event', self.enter_leave)
         self.connect('leave-notify-event', self.enter_leave)
-	self.connect('motion-notify-event', self.mouse_motion, self.desktop_buttons)
-	self.connect('button-press-event', self.button_press, self.desktop_buttons)
+        self.connect('motion-notify-event', self.mouse_motion, self.desktop_buttons)
+        self.connect('button-press-event', self.button_press, self.desktop_buttons)
 
         self.gconf_keys = ['background_color', 'roundness', 'hover_size', 'border', 'draw_reflection', 'reflection_height', 'reflection_intensity', 'blur', 'text_position']
         self.conf = {}
@@ -103,7 +103,7 @@ class DesktopControl(gtk.DrawingArea):
     def font_changed(self, client, cnxn_id, entry, affected):
         for a in affected:
             a.font_changed(entry.get_value().get_string())
-	self.queue_draw()
+        self.queue_draw()
 
     def icon_theme_changed(self, icon_theme, affected):
         for a in affected:
@@ -166,7 +166,6 @@ class DesktopControl(gtk.DrawingArea):
         cc.set_operator(cairo.OPERATOR_OVER)
         cc.paint()
 
-
         # Draw reflections
         if self.conf['draw_reflection']:
             cc.save()
@@ -225,10 +224,10 @@ class DesktopControl(gtk.DrawingArea):
 
 class SongInfo():
     tags = {'title'  : ['<big><b>', '</b></big>'],
-	    'artist' : ['<i>', '</i>'],
-	    'album'  : ['', '']}
+            'artist' : ['<i>', '</i>'],
+            'album'  : ['', '']}
     font = gconf.client_get_default().get_string('/apps/nautilus/preferences/desktop_font')
-	
+
     def __init__(self, song_info=None):
         self.set_text(song_info)
 
@@ -244,7 +243,7 @@ class SongInfo():
         if song_info:
             for key in ('title', 'artist', 'album'):
                 if song_info[key]:
-			self.text += '%s%s%s\n' % (self.tags[key][0], song_info[key].replace('&', '&amp;'), self.tags[key][1])
+                    self.text += '%s%s%s\n' % (self.tags[key][0], song_info[key].replace('&', '&amp;'), self.tags[key][1])
             self.text = self.text[:-1]
 
     def draw(self, cc):
@@ -313,14 +312,14 @@ class DesktopButtons():
     def set_mouse_position(self, w, x, y):
         redraw = False
         for k in self.icon_keys:
-	    if self.idata[(k, 'cairo_path')]:
+            if self.idata[(k, 'cairo_path')]:
                 cc = w.window.cairo_create()
-		cc.append_path(self.idata[(k, 'cairo_path')])
-		hover = cc.in_fill(x,y)
-		if hover != self.idata[(k, 'hover')]:
+                cc.append_path(self.idata[(k, 'cairo_path')])
+                hover = cc.in_fill(x,y)
+                if hover != self.idata[(k, 'hover')]:
                     self.idata[(k, 'hover')] = hover
                     redraw = True
-	return redraw
+        return redraw
 
     def icon_theme_changed(self, icon_theme):
         for k in self.icon_keys:
@@ -365,19 +364,19 @@ class DesktopButtons():
         cc.scale(w, h)
         roundedrec(cc, 0, 0, 1, 1, self.conf['roundness'])
 
-	cc.save()
-	cc.identity_matrix()
-	self.idata[(key, 'cairo_path')] = cc.copy_path()
-	cc.restore()
+        cc.save()
+        cc.identity_matrix()
+        self.idata[(key, 'cairo_path')] = cc.copy_path()
+        cc.restore()
 
-	if hover:
-	    cc.set_source_rgba(1, 1, 1, 0.3)
-	else:
+        if hover:
+            cc.set_source_rgba(1, 1, 1, 0.3)
+        else:
             if self.playing and key == 'play':
                 cc.set_source_rgba(0, 0, 0, 1)
             else:
                 cc.set_source_rgba(0, 0, 0, 0.3)
-	cc.fill()
+        cc.fill()
 
         cc.restore()
 
