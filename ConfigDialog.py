@@ -59,8 +59,7 @@ class ConfigDialog(gtk.Dialog):
         self.get_gconf_values(self.widgets)
 
     def run(self):
-        self.desktop_control.set_draw_border(True)
-        self.get_gconf_values(self.widgets)
+        self.present()
         self.show_all()
 
     def get_gconf_values(self, w):

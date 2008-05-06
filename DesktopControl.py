@@ -68,16 +68,46 @@ def reread_gconf_value(conf, keys, key):
     if key in keys:
         read_gconf_values(conf, [key])
 
+class _ContextMenu(gtk.Menu):
+    def __init__(self, desktop_control, configure_glade_file, shell):
+        gtk.Menu.__init__(self)
+        self.shell = shell
+
+        self.show_player = gtk.CheckMenuItem('_Show Music Player', True)
+        self.show_player.connect('activate', self.toggle_player_visibility)
+        self.add(self.show_player)
+
+        self.add(gtk.SeparatorMenuItem())
+
+        preferences = gtk.ImageMenuItem(gtk.STOCK_PREFERENCES)
+        conf_dialog = ConfigDialog(configure_glade_file, gconf_plugin_path, self)
+        preferences.connect('activate', self.show_preferences_dialog, desktop_control, configure_glade_file)
+        self.add(preferences)
+
+        self.show_all()
+
+    def show(self, event):
+        self.show_player.set_active(self.shell.props.visibility)
+        self.popup(None, None, None, event.button, event.time)
+
+    def toggle_player_visibility(self, menu_item):
+        self.shell.props.visibility = menu_item.get_active()
+
+    def show_preferences_dialog(self, menu_item, desktop_control, configure_glade_file):
+        conf_dialog = ConfigDialog(configure_glade_file, gconf_plugin_path, desktop_control)
+        conf_dialog.run()
+
 class DesktopControl(gtk.DrawingArea):
     def __init__(self, icons, shell, player, conf_glade):
         gtk.DrawingArea.__init__(self)
         self.connect("expose_event", self.expose)
 
         self.shell = shell
-        self.configure_glade_file = conf_glade
         self.cover_image = CoverImage(icons)
         self.song_info = SongInfo()
         self.desktop_buttons = DesktopButtons(icons, player)
+        self.context_menu = _ContextMenu(self, conf_glade, shell)
+
         self.draw_border = False
 
         # Find and set up icon and font
@@ -101,14 +131,6 @@ class DesktopControl(gtk.DrawingArea):
 
         self.set_gconf_callbacks([self, self.cover_image, self.song_info, self.desktop_buttons])
 
-        # Create Context Menu
-        self.popup_menu = gtk.Menu()
-        menu_pref = gtk.ImageMenuItem (gtk.STOCK_PREFERENCES)
-        conf_dialog = ConfigDialog(self.configure_glade_file, gconf_plugin_path, self)
-        menu_pref.connect('activate', lambda menu_item, conf_dialog: conf_dialog.run(), conf_dialog)
-        self.popup_menu.add(menu_pref)
-        self.popup_menu.show_all()
-
     def set_gconf_callbacks(self, affected):
         gc = gconf.client_get_default()
         for entry in gc.all_entries(gconf_plugin_path):
@@ -126,7 +148,7 @@ class DesktopControl(gtk.DrawingArea):
             if not affected.button_press():
                 self.shell.props.visibility = not self.shell.props.visibility
         elif e.button == 3:
-            self.popup_menu.popup( None, None, None, e.button, e.time)
+            self.context_menu.show(e)
 
     def mouse_motion(self, w, e, affected):
         if affected.set_mouse_position(self, e.x, e.y):
