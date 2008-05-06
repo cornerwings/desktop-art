@@ -34,7 +34,7 @@ icons = {'previous'      : 'gtk-media-previous-ltr',
 	 'unknown_cover' : 'rhythmbox',
 	 'size'          : 500}
 
-gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art/'
+gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art'
 
 class DesktopArt(rb.Plugin):
 	def __init__ (self):
@@ -46,7 +46,7 @@ class DesktopArt(rb.Plugin):
 		if self.composited:
 			player = shell.get_player()
 
-			desktop_control = DesktopControl(icons, shell, player)
+			desktop_control = DesktopControl(icons, shell, player, self.find_file('configure-art.glade'))
 			cover_manager = CoverManager(player.props.db)
 
 			gc = gconf.client_get_default()
@@ -110,7 +110,7 @@ class DesktopArt(rb.Plugin):
 		desktop_control.set_song(playing, c, s)
 
 	def gconf_path(self, key):
-		return '%s%s' % (gconf_plugin_path, key)
+		return '%s/%s' % (gconf_plugin_path, key)
 
 	def get_gconf_window_props(self, gc):
 		return {'x' : gc.get_int(self.gconf_path('window_x')),

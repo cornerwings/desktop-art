@@ -56,6 +56,11 @@ class ConfigDialog(gtk.Dialog):
         self.desktop_control.set_draw_border(True)
         self.get_gconf_values(self.widgets)
 
+    def run(self):
+        self.desktop_control.set_draw_border(True)
+        self.get_gconf_values(self.widgets)
+        self.show_all()
+
     def get_gconf_values(self, w):
         for name in widget_names:
             if isinstance(w[name], gtk.SpinButton):
@@ -107,5 +112,5 @@ class ConfigDialog(gtk.Dialog):
                 w[name].connect('color-set', self.set_gconf_value, name)
 
     def gconf_path(self, key):
-        return '%s%s' % (self.gconf_plugin_path, key)
+        return '%s/%s' % (self.gconf_plugin_path, key)
 

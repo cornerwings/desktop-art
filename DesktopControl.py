@@ -26,6 +26,7 @@ import gtk, cairo, pango
 import gconf
 import rsvg
 from roundedrec import roundedrec
+from ConfigDialog import ConfigDialog
 
 # CONSTANTS
 
@@ -68,11 +69,12 @@ def reread_gconf_value(conf, keys, key):
         read_gconf_values(conf, [key])
 
 class DesktopControl(gtk.DrawingArea):
-    def __init__(self, icons, shell, player):
+    def __init__(self, icons, shell, player, conf_glade):
         gtk.DrawingArea.__init__(self)
         self.connect("expose_event", self.expose)
 
         self.shell = shell
+        self.configure_glade_file = conf_glade
         self.cover_image = CoverImage(icons)
         self.song_info = SongInfo()
         self.desktop_buttons = DesktopButtons(icons, player)
@@ -97,9 +99,17 @@ class DesktopControl(gtk.DrawingArea):
         self.conf = {}
         read_gconf_values(self.conf, self.gconf_keys)
 
-        self.set_gcon_callbacks([self, self.cover_image, self.song_info, self.desktop_buttons])
+        self.set_gconf_callbacks([self, self.cover_image, self.song_info, self.desktop_buttons])
         
-    def set_gcon_callbacks(self, affected):
+        # Create Context Menu
+        self.popup_menu = gtk.Menu()
+        menu_pref = gtk.ImageMenuItem (gtk.STOCK_PREFERENCES)
+        conf_dialog = ConfigDialog(self.configure_glade_file, gconf_plugin_path, self)
+        menu_pref.connect('activate', lambda menu_item, conf_dialog: conf_dialog.run(), conf_dialog)
+        self.popup_menu.add(menu_pref)
+        self.popup_menu.show_all()
+
+    def set_gconf_callbacks(self, affected):
         gc = gconf.client_get_default()
         for entry in gc.all_entries(gconf_plugin_path):
             path = entry.get_key()
@@ -115,6 +125,8 @@ class DesktopControl(gtk.DrawingArea):
         if e.button == 1:
             if not affected.button_press():
                 self.shell.props.visibility = not self.shell.props.visibility
+        elif e.button == 3:
+            self.popup_menu.popup( None, None, None, e.button, e.time)
 
     def mouse_motion(self, w, e, affected):
         if affected.set_mouse_position(self, e.x, e.y):
