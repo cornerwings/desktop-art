@@ -12,4 +12,3 @@ def roundedrec(cc, x, y, w, h, r):
     cc.curve_to(x,y+h,x,y+h,x,y+h-r)
     cc.line_to(x,y+r)
     cc.curve_to(x,y,x,y,x+r,y)
-

@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of the Rhythmbox Desktop Art plug-in
-# 
+#
 # Copyright © 2008 Mathias Nedrebø < mathias at nedrebo dot org >
-# 
+#
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
 # of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -100,7 +100,7 @@ class DesktopControl(gtk.DrawingArea):
         read_gconf_values(self.conf, self.gconf_keys)
 
         self.set_gconf_callbacks([self, self.cover_image, self.song_info, self.desktop_buttons])
-        
+
         # Create Context Menu
         self.popup_menu = gtk.Menu()
         menu_pref = gtk.ImageMenuItem (gtk.STOCK_PREFERENCES)
@@ -159,7 +159,7 @@ class DesktopControl(gtk.DrawingArea):
         cc.rectangle(event.area.x, event.area.y, event.area.width, event.area.height)
         cc.clip()
         self.draw(cc)
-    
+
     def draw(self, cc):
         # Clear cairo context
         cc.set_source_rgba(0, 0, 0, 0)
@@ -269,7 +269,7 @@ class SongInfo():
 
     def font_changed(self, font):
         self.font = font
-    
+
     def set_text(self, song_info):
         self.text = ''
         if song_info:
@@ -428,7 +428,7 @@ class DesktopButtons():
         cc.set_source(cc.pop_group())
         roundedrec(cc, 0, 0, 1, 1, self.conf['roundness'])
         cc.fill()
-            
+
     def draw_pixbuf_icon(self, cc, key):
         cc.scale(self.idata[(key, 'scale')], self.idata[(key, 'scale')])
         cc.set_source_pixbuf(self.idata[(key, 'image')], 0, 0)

@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of the Rhythmbox Desktop Art plug-in
-# 
+#
 # Copyright © 2008 Mathias Nedrebø < mathias at nedrebo dot org >
-# 
+#
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
 # of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -31,6 +31,7 @@ widget_names = ['main_area',
 class ConfigDialog(gtk.Dialog):
     def __init__(self, glade_file, gconf_plugin_path, desktop_control):
         gtk.Dialog.__init__(self, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        self.set_title("Desktop Art preferences")
         self.set_has_separator(False)
 
         self.connect("response", lambda w, e: w.hide())
@@ -46,12 +47,13 @@ class ConfigDialog(gtk.Dialog):
         self.widgets['main_area'].set_border_width(6)
         self.gconf_plugin_path = gconf_plugin_path
         self.desktop_control = desktop_control
+        self.set_resizable(False)
 
     def get_widgets(self, w, glade_file):
         gxml  = gtk.glade.XML(glade_file)
         for name in widget_names:
             w[name] = gxml.get_widget(name)
-        
+
     def present(self):
         self.desktop_control.set_draw_border(True)
         self.get_gconf_values(self.widgets)
@@ -113,4 +115,3 @@ class ConfigDialog(gtk.Dialog):
 
     def gconf_path(self, key):
         return '%s/%s' % (self.gconf_plugin_path, key)
-
