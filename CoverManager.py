@@ -27,9 +27,12 @@
 
 import rhythmdb
 import DesktopControl
+import mimetypes
 
-from os import path
+from os import path, listdir
 from urllib import url2pathname
+
+IMAGE_NAMES = ['cover', 'album', 'albumart', '.folder', 'folder']
 
 class CoverManager():
     def __init__(self, db):
@@ -42,11 +45,12 @@ class CoverManager():
         # Find cover in music dir
         if db_entry:
             cover_dir = path.dirname(url2pathname(db_entry.get_playback_uri()).replace('file://', ''))
-            for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
-                for file_name in ('cover', 'album', 'albumart', '.folder', 'folder'):
-                    cover_file = path.join(cover_dir, '%s.%s' % (file_name, file_type))
-                    if path.isfile(cover_file):
-                        return cover_file
+            for f in listdir(cover_dir):
+                file_name = path.join(cover_dir, f)
+                if mimetypes.guess_type(file_name)[0].startswith('image/'):
+                    if path.splitext(f)[0].lower() in IMAGE_NAMES:
+                        print file_name
+                        return file_name
 
             # Find cover saved by artdisplay plugin
             song_info = self.get_song_info(db_entry)
