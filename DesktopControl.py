@@ -538,16 +538,13 @@ class CoverImage():
         cc.set_source_rgba(self.conf['background_color_r'], self.conf['background_color_g'], self.conf['background_color_b'], self.conf['background_color_a'])
         cc.fill_preserve()
         cc.set_operator(cairo.OPERATOR_OVER)
-        ##
-        ## THE FOLLOWING IS JUST A SIMPLE HACK TO REMOVE A DARK BORDER THAT APPEAR ON THE PICTURES
-        ##
-        BH = 0.01
-        cc.translate(-self.w * BH / 2, -self.h * BH / 2)
-        cc.scale(1 + BH, 1 + BH)
-        ##
-        ## END HACK
-        ##
         cc.set_source_pixbuf(self.image, self.x, self.y)
+        cs = cc.get_source()
+        try:
+            ## 3 = cairo.EXTEND_PAD, but doesn't appear in pycairo before 1.6
+            cs.set_extend(3)
+        except AttributeError :
+            cs.set_extend(cairo.EXTEND_REFLECT)
         cc.fill()
         cc.restore()
 
