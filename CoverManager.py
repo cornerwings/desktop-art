@@ -45,12 +45,13 @@ class CoverManager():
         # Find cover in music dir
         if db_entry:
             cover_dir = path.dirname(url2pathname(db_entry.get_playback_uri()).replace('file://', ''))
-            for f in listdir(cover_dir):
-                file_name = path.join(cover_dir, f)
-                mt = mimetypes.guess_type(file_name)[0]
-                if mt and mt.startswith('image/'):
-                    if path.splitext(f)[0].lower() in IMAGE_NAMES:
-                        return file_name
+            if path.isdir(cover_dir):
+                for f in listdir(cover_dir):
+                    file_name = path.join(cover_dir, f)
+                    mt = mimetypes.guess_type(file_name)[0]
+                    if mt and mt.startswith('image/'):
+                        if path.splitext(f)[0].lower() in IMAGE_NAMES:
+                            return file_name
 
             # Find cover saved by artdisplay plugin
             song_info = self.get_song_info(db_entry)

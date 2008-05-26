@@ -196,9 +196,9 @@ class DesktopControl(gtk.DrawingArea):
             cover_area_size = min(rect.width - self.conf['blur']/2, (rect.height - self.conf['blur']/2))
 
         if self.conf['text_position'] in [POSITION_SW, POSITION_NW]:
-            x_trans = rect.width - cover_area_size - self.conf['blur']/2
+            x_trans = int(round(rect.width - cover_area_size - self.conf['blur']/2))
         else:
-            x_trans = self.conf['blur']/2
+            x_trans = int(round(self.conf['blur']/2))
 
         cc.translate(x_trans, 0)
         cc.scale(cover_area_size, cover_area_size)
