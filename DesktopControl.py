@@ -210,7 +210,7 @@ class DesktopControl(gtk.DrawingArea):
             cc.save()
             cc.translate((1 - self.conf['hover_size']) / 2, self.conf['border'])
             cc.scale(self.conf['hover_size'], self.conf['hover_size'])
-        self.cover_image.draw(cc)
+        self.cover_image.draw(cc, cover_area_size)
         if self.mouse_over:
             cc.restore()
         graphics = cc.pop_group()
@@ -503,20 +503,20 @@ class CoverImage():
                 except:
                     pass
 
-            dim = max(self.w, self.h)
-            self.x = (dim - self.w) / 2
-            self.y = dim - self.h
-            self.scale = 1 / dim
+            self.dim = max(self.w, self.h)
+            self.x = (self.dim - self.w) / 2
+            self.y = self.dim - self.h
+            self.scale = 1 / self.dim
         self.current_image = image
 
-    def draw_background(self, cc):
+    def draw_background(self, cc, size = None):
         cc.save()
         cc.set_source_rgba(self.conf['background_color_r'], self.conf['background_color_g'], self.conf['background_color_b'], self.conf['background_color_a'])
         roundedrec(cc, 0, 0, 1, 1, self.conf['roundness'])
         cc.fill()
         cc.restore()
 
-    def draw_svg(self, cc):
+    def draw_svg(self, cc, size = None):
         cc.save()
         cc.scale(self.scale, self.scale)
         cc.push_group()
@@ -530,7 +530,9 @@ class CoverImage():
         cc.fill()
         cc.restore()
 
-    def draw_pixbuf(self, cc):
+    def draw_pixbuf(self, cc, size = None):
+        img_scale = size/self.dim
+        scaled_image = self.image.scale_simple(int(self.w * img_scale), int(self.h * img_scale), gtk.gdk.INTERP_TILES)
         cc.save()
         cc.set_operator(cairo.OPERATOR_SOURCE)
         cc.scale(self.scale, self.scale)
@@ -538,7 +540,8 @@ class CoverImage():
         cc.set_source_rgba(self.conf['background_color_r'], self.conf['background_color_g'], self.conf['background_color_b'], self.conf['background_color_a'])
         cc.fill_preserve()
         cc.set_operator(cairo.OPERATOR_OVER)
-        cc.set_source_pixbuf(self.image, self.x, self.y)
+        cc.scale(1/img_scale, 1/img_scale)
+        cc.set_source_pixbuf(scaled_image, img_scale * self.x, img_scale * self.y)
         cs = cc.get_source()
         try:
             ## 3 = cairo.EXTEND_PAD, but doesn't appear in pycairo before 1.6

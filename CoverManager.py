@@ -47,9 +47,9 @@ class CoverManager():
             cover_dir = path.dirname(url2pathname(db_entry.get_playback_uri()).replace('file://', ''))
             for f in listdir(cover_dir):
                 file_name = path.join(cover_dir, f)
-                if mimetypes.guess_type(file_name)[0].startswith('image/'):
+                mt = mimetypes.guess_type(file_name)[0]
+                if mt and mt.startswith('image/'):
                     if path.splitext(f)[0].lower() in IMAGE_NAMES:
-                        print file_name
                         return file_name
 
             # Find cover saved by artdisplay plugin
