@@ -532,7 +532,7 @@ class CoverImage():
 
     def draw_pixbuf(self, cc, size = None):
         img_scale = size/self.dim
-        scaled_image = self.image.scale_simple(int(self.w * img_scale), int(self.h * img_scale), gtk.gdk.INTERP_TILES)
+        scaled_image = self.image.scale_simple(int(self.w * img_scale + 1.5), int(self.h * img_scale + 1.5), gtk.gdk.INTERP_TILES)
         cc.save()
         cc.set_operator(cairo.OPERATOR_SOURCE)
         cc.scale(self.scale, self.scale)
