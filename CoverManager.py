@@ -55,14 +55,15 @@ class CoverManager():
 
             # Find cover saved by artdisplay plugin
             song_info = self.get_song_info(db_entry)
-            for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
-                cover_file = path.join(path.expanduser('~/.gnome2/rhythmbox/covers'),
-                                       '%s - %s.%s' %
-                                       (song_info['artist'],
-                                        song_info['album'],
-                                        file_type))
-                if path.isfile(cover_file):
-                    return cover_file
+            for rb_cover_path in ('~/.gnome2/rhythmbox/covers', '~/.cache/rhythmbox/covers/'):
+                for file_type in ('jpg', 'png', 'jpeg', 'gif', 'svg'):
+                    cover_file = path.join(path.expanduser(rb_cover_path),
+                                           '%s - %s.%s' %
+                                           (song_info['artist'],
+                                            song_info['album'],
+                                            file_type))
+                    if path.isfile(cover_file):
+                        return cover_file
 
             # No cover found
             return DesktopControl.UNKNOWN_COVER
