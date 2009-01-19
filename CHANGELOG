@@ -4,9 +4,6 @@
 2008-05-26
     Better(looking) image scaling
 
-2008-05-25
-    Do case insensitive album art search
-
 2008-05-06
     Added 'Show Music Player' to context menu
 
@@ -41,4 +38,4 @@
     Icon theme support for all icons used
 
 2008-04-10
-    First working version, will only find covers images named cover.{png, jpg, gif} and located at the same place as the file playing
+    First working version, will only find cover images named cover.{png, jpg, gif} and located at the same place as the file playing
