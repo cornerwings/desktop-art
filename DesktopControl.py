@@ -210,7 +210,14 @@ class DesktopControl(gtk.DrawingArea):
             cc.save()
             cc.translate((1 - self.conf['hover_size']) / 2, self.conf['border'])
             cc.scale(self.conf['hover_size'], self.conf['hover_size'])
+        if (self.conf['text_position'] in [POSITION_NW, POSITION_NE]) and (not self.mouse_over):
+            if(self.cover_image.w > self.cover_image.h):
+                cc.save()
+                cc.translate(0, (self.cover_image.h - self.cover_image.w) / self.cover_image.w)
         self.cover_image.draw(cc, cover_area_size)
+        if (self.conf['text_position'] in [POSITION_NW, POSITION_NE]) and (not self.mouse_over):
+            if(self.cover_image.w > self.cover_image.h):
+                cc.restore()
         if self.mouse_over:
             cc.restore()
         graphics = cc.pop_group()
@@ -225,6 +232,10 @@ class DesktopControl(gtk.DrawingArea):
             cc.save()
             cc.set_operator(cairo.OPERATOR_ADD)
             cc.translate(0, 2.02)
+            if (self.conf['text_position'] in [POSITION_NW, POSITION_NE]) and (not self.mouse_over):
+                if(self.cover_image.w > self.cover_image.h):
+                    cc.save()
+                    cc.translate(0, 2 * (self.cover_image.h - self.cover_image.w) / self.cover_image.w)
             cc.scale(1, -1)
             cc.push_group()
             x_scale = cc.get_matrix()[0]
@@ -244,6 +255,9 @@ class DesktopControl(gtk.DrawingArea):
             shadow_mask.add_color_stop_rgba(0, 0, 0, 0, 0)
             shadow_mask.add_color_stop_rgba(1, 0, 0, 0, self.conf['reflection_intensity'])
             cc.mask(shadow_mask)
+            if (self.conf['text_position'] in [POSITION_NW, POSITION_NE]) and (not self.mouse_over):
+                if(self.cover_image.w > self.cover_image.h):
+                    cc.restore()
             cc.restore()
 
         # Input mask, only the cover image is clickable
