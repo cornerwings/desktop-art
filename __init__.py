@@ -21,6 +21,8 @@
 import rb
 import gtk, gtk.glade
 import gconf
+import time
+import gobject
 
 from DesktopControl import DesktopControl
 from CoverManager import CoverManager
@@ -35,6 +37,7 @@ icons = {'previous'      : 'gtk-media-previous-ltr',
          'size'          : 500}
 
 gconf_plugin_path = '/apps/rhythmbox/plugins/desktop-art'
+POLL_TIMEOUT = 1000
 
 class DesktopArt(rb.Plugin):
     def __init__ (self):
@@ -48,6 +51,7 @@ class DesktopArt(rb.Plugin):
 
             desktop_control = DesktopControl(icons, shell, player, self.find_file('configure-art.glade'))
             cover_manager = CoverManager(player.props.db)
+            player.props.db.connect_after("entry-extra-metadata-notify::rb:coverArt-uri", self.notify_metadata)
 
             gc = gconf.client_get_default()
             window_props = self.get_gconf_window_props(gc)
@@ -72,6 +76,10 @@ class DesktopArt(rb.Plugin):
             self.window_props = window_props
             self.desktop_control = desktop_control
             self.cover_manager = cover_manager
+
+            print "Adding timeout"
+            ret = gobject.timeout_add(POLL_TIMEOUT, self.poll_for_coverart)
+            print "integer id returned: " + str(ret)
 
             self.position_window(self.window_props)
             self.window.show_all()
@@ -105,9 +113,30 @@ class DesktopArt(rb.Plugin):
             dialog.present()
         return dialog
 
+    # Add the poll object for new track
     def playing_changed(self, player, playing, desktop_control, cover_manager):
+        gobject.timeout_add(POLL_TIMEOUT, self.poll_for_coverart)
         c, s = cover_manager.get_cover_and_song_info(player.get_playing_entry())
         desktop_control.set_song(playing, c, s)
+
+    # An ugly poll method which repeatedly wastes system resources
+    def poll_for_coverart(self):
+        print "Polling for coverart"
+        c, s = self.cover_manager.get_cover_and_song_info(self.player.get_playing_entry())
+        print "Cover art found: " + str(c)
+        if c==-1 or c is None:
+            return True
+        else:
+            self.desktop_control.set_song(self.player.get_playing(), c, s)
+            return False          
+
+    # Subscribe to metadata notification
+    # TODO: Not working - notification coming too soon
+    def notify_metadata(self, db, entry, field=None,metadata=None):
+        print "Metadata changed changed"
+        if entry:
+            c, s = self.cover_manager.get_cover_and_song_info(entry)
+            self.desktop_control.set_song(self.player.get_playing(), c, s)
 
     def gconf_path(self, key):
         return '%s/%s' % (gconf_plugin_path, key)

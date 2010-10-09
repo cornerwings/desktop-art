@@ -28,11 +28,14 @@
 import rhythmdb
 import DesktopControl
 import mimetypes
+import rb, gtk, gobject
 
 from os import path, listdir
 from urllib import url2pathname
 
 IMAGE_NAMES = ['cover', 'album', 'albumart', '.folder', 'folder']
+STORAGE_LOC = "~/.gnome2/rhythmbox/covers/"
+RETRIES = 5
 
 class CoverManager():
     def __init__(self, db):
@@ -63,7 +66,23 @@ class CoverManager():
                                             song_info['album'],
                                             file_type))
                     if path.isfile(cover_file):
+                        print "Found image in cache folder"
                         return cover_file
+
+            # Find the image from AlbumArt plugin
+            cover_art = self.db.entry_request_extra_metadata(db_entry, "rb:coverArt")
+
+            # If image not found return
+            if cover_art==None:
+                print "Image not found, bloody timeouts"
+                return DesktopControl.UNKNOWN_COVER
+    
+            # Do the dirty work here
+            cover_file = path.expanduser(STORAGE_LOC) + song_info['title'] + "-" + song_info['artist'] + ".jpg"
+            cover_art.save(cover_file, "jpeg", {"quality":"100"})
+            print "Returning cover file"
+            return cover_file
+            
 
             # No cover found
             return DesktopControl.UNKNOWN_COVER
