@@ -13,7 +13,7 @@ A big shoutout to Mathias for his awesome plugin. :)
 
 mkdir -p $HOME/.gnome2/rhythmbox/plugins/
 cd $HOME/.gnome2/rhythmbox/plugins/
-git clone git://github.com/sainathmallidi/desktop-art.git
+git clone git://github.com/wippler/desktop-art.git
 
 
 ==Authors==
@@ -30,4 +30,4 @@ Sainath Mallidi (sainathdreams@gmail.com)
 ==Download==
 
 You can also clone the project with Git by running:
-git clone git://github.com/sainathmallidi/desktop-art
+git clone git://github.com/wippler/desktop-art
